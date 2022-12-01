@@ -1,0 +1,38 @@
+{
+  "name": "jest-elasticsearch",
+  "version": "1.0.0",
+  "description": "Jest preset for running tests with local ElasticSearch power by Zinc",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc --build",
+    "lint:fix": "eslint --fix ./",
+    "lint:check": "eslint ./",
+    "test": "jest --runInBand --coverage --coverageReporters json-summary text html lcov"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/geek-fun/jest-elasticsearch.git"
+  },
+  "keywords": [
+    "jest",
+    "elasticSearch",
+    "zinc"
+  ],
+  "author": "geek-fun",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/geek-fun/jest-elasticsearch/issues"
+  },
+  "homepage": "https://github.com/geek-fun/jest-elasticsearch#readme",
+  "devDependencies": {
+    "@types/jest": "^29.2.3",
+    "@typescript-eslint/eslint-plugin": "^5.45.0",
+    "@typescript-eslint/parser": "^5.45.0",
+    "eslint": "^8.28.0",
+    "eslint-config-prettier": "^8.5.0",
+    "jest": "^29.3.1",
+    "prettier": "^2.8.0",
+    "ts-jest": "^29.0.3",
+    "typescript": "^4.9.3"
+  }
+}
