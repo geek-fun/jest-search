@@ -25,7 +25,10 @@
   },
   "homepage": "https://github.com/geek-fun/jest-elasticsearch#readme",
   "devDependencies": {
+    "@types/cwd": "^0.10.0",
+    "@types/debug": "^4.1.7",
     "@types/jest": "^29.2.3",
+    "@types/node": "^18.11.10",
     "@typescript-eslint/eslint-plugin": "^5.45.0",
     "@typescript-eslint/parser": "^5.45.0",
     "eslint": "^8.28.0",
@@ -34,5 +37,10 @@
     "prettier": "^2.8.0",
     "ts-jest": "^29.0.3",
     "typescript": "^4.9.3"
+  },
+  "dependencies": {
+    "cwd": "^0.10.0",
+    "debug": "^4.3.4",
+    "execa": "^6.1.0"
   }
 }
