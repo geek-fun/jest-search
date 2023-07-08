@@ -63,7 +63,7 @@ const prepareEngine = async (engine: EngineType, version: string, binaryLocation
 };
 
 const start = async (
-  options: Omit<EngineOptions, 'binaryLocation'> & { binaryFilepath: string },
+  options: Omit<EngineOptions, 'binaryLocation'> & { binaryFilepath: string }
 ) => {
   engineOptions = options;
   const { engine, version, binaryFilepath, clusterName, nodeName, port = 9200 } = options;
@@ -87,7 +87,9 @@ const cleanupIndices = (options: { indexes?: Array<string> }): void => {
   const indexes = options.indexes?.join(',');
 
   if (indexes) {
-    const result = execSync(`curl -XDELETE http://localhost/${indexes} -s`);
+    const result = execSync(`curl -s -X DELETE http://localhost/${indexes}`, {
+      env: { http_proxy: undefined, https_proxy: undefined, all_proxy: undefined },
+    });
 
     const error = getError(result);
 
@@ -99,14 +101,17 @@ const cleanupIndices = (options: { indexes?: Array<string> }): void => {
   }
 };
 
-const killProcess = (): void => {
+const killProcess = async (): Promise<void> => {
   try {
-    server.kill('SIGTERM', {
-      forceKillAfterTimeout: 2000,
-    });
+    const closeEmit = new Promise((resolve) => server.on('close', () => resolve('close')));
+    const timeoutEmit = new Promise((resolve) => setTimeout(() => resolve('timout'), 3000));
+
+    server.kill('SIGTERM', { forceKillAfterTimeout: 2000 });
+
+    const result = await Promise.race([closeEmit, timeoutEmit]);
+    debug('close result', result);
   } catch (e) {
-    debug(`Could not stop ES, killing all elasticsearch system wide`);
-    execSync(`pkill -f Elasticsearch`);
+    debug(`Could not stop ${engineOptions.engine}, killing system wide`);
   }
 };
 
@@ -123,9 +128,9 @@ export const startEngine = async ({
   await start({ engine, version, port, clusterName, nodeName, binaryFilepath });
 };
 
-export const stopEngine = (): void => {
+export const stopEngine = async (): Promise<void> => {
   cleanupIndices({ indexes: engineOptions.indexes });
-  killProcess();
+  await killProcess();
 
   debug('ES has been stopped');
 };

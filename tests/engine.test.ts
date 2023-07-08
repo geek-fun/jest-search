@@ -9,7 +9,7 @@ it('should start engine with default config', async () => {
     env: { http_proxy: undefined, https_proxy: undefined, all_proxy: undefined },
   });
 
-  stopEngine();
+  await stopEngine();
 
   expect(JSON.parse(response.toString())).toEqual({
     name: 'jest-search-local',

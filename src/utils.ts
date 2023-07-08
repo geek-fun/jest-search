@@ -6,17 +6,17 @@ import { execSync } from 'child_process';
 
 export const waitForLocalhost = async (port: number, retries = 60) => {
   debug(`checking the local engine startup: ${retries}`);
-  await new Promise((resolve, _) => setTimeout(() => resolve(0), 2000));
+  await new Promise((resolve) => setTimeout(() => resolve(0), 2000));
   if (retries <= 0) {
     throw new Error('failed start search engine');
   }
-  let statusCode;
-  const response = await execSync(
+
+  const response = execSync(
     'curl -s -o /dev/null -i -w "%{http_code}" "http://localhost:9200" || true',
-    { env: { http_proxy: undefined, https_proxy: undefined, all_proxy: undefined } },
+    { env: { http_proxy: undefined, https_proxy: undefined, all_proxy: undefined } }
   );
 
-  statusCode = parseInt(response.toString('utf-8'), 10);
+  const statusCode = parseInt(response.toString('utf-8'), 10);
   debug(`curl response: ${statusCode}`);
 
   if (statusCode !== 200) {
