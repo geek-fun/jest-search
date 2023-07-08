@@ -1,64 +1,92 @@
-import {execa} from "execa";
-import {access, constants} from 'fs';
+import { execa } from 'execa';
 import cwd from 'cwd';
-import {promisify} from 'util';
-import {debug} from "console";
+import { debug } from 'console';
+import { isFileExists, platform, waitForLocalhost } from './utils';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import download from 'download-tarball';
 
-const isFileExists = (path: string): Promise<boolean> => {
-  const fsAccessPromisified = promisify(access);
-
-  try {
-    await fsAccessPromisified(path, constants.F_OK);
-
-    return true;
-  } catch (e) {
-    return false;
-  }
+export enum EngineType {
+  ZINC = 'zinc',
+  ELASTICSEARCH = 'elasticsearch',
+  OPENSEARCH = 'opensearch',
 }
 
-const startEngine= ({
-  version,
-  binaryLocation = `${cwd()}/node_modules/.cache/jest-elasticsearch`,
-  port = 9200,
-  indexes = [],
-}: {
+export type StartOptions = {
+  engine: EngineType;
   version: string;
-  binaryLocation:string;
-  clusterName:string;
-    nodeName : string;
-    port:number;
-    indexes:Array<string>;
-}) => {
-      const sysname = await execa('uname', ['-o']);
-      const machine = await execa('uname', ['-m']);
-    const downLoadURL = `https://github.com/zinclabs/zinc/releases/download/v${version}/zinc_${version}_${sysname}_${machine}.tar.gz`;
-  const binaryFilepath = `${binaryLocation}/zinc`;
+  binaryLocation: string;
+  clusterName: string;
+  nodeName: string;
+  port: number;
+  indexes: Array<string>;
+};
 
-  if (!await isFileExists(binaryFilepath)) {
-    await download({url: downLoadURL, dir: binaryFilepath});
+const getEngineResourceURL = async (engine: EngineType, version: string) => {
+  const { sysName, arch } = await platform();
+  const engines: {
+    [engineType: string]: () => string;
+  } = {
+    [EngineType.ELASTICSEARCH]: () =>
+      parseInt(version.charAt(0)) >= 7
+        ? `https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-${version}-${sysName}-${arch}.tar.gz`
+        : `https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-${version}.tar.gz`,
+
+    [EngineType.OPENSEARCH]: () =>
+      `https://artifacts.opensearch.org/releases/bundle/opensearch/${version}/opensearch-${version}-${sysName}-${arch.slice(
+        1,
+        4
+      )}.tar.gz`,
+    [EngineType.ZINC]: () =>
+      `https://github.com/zinclabs/zinc/releases/download/v${version}/zinc_${version}_${sysName}_${arch}.tar.gz`,
+  };
+
+  return engines[engine]();
+};
+const prepareEngine = async (engine: EngineType, version: string, binaryLocation: string) => {
+  const downLoadURL = await getEngineResourceURL(engine, version);
+  const binaryFilepath = `${binaryLocation}/${engine}/${version}`;
+
+  if (!(await isFileExists(binaryFilepath))) {
+    await download(downLoadURL, binaryFilepath);
     debug('Downloaded zinc');
   } else {
     debug('zinc already downloaded');
   }
+  return binaryFilepath;
+};
 
-  debug('Starting zinc', binaryFilepath);
+const startEngine = async ({
+  engine,
+  version,
+  binaryFilepath,
+  port = 9200,
+  clusterName,
+  nodeName,
+}: StartOptions & { binaryFilepath: string }) => {
+  debug(`Starting ${engine} ${version}`, binaryFilepath);
+  const execArgs = [
+    '-p',
+    `${binaryFilepath}/elasticsearch-${version}/es-pid`,
+    `-Ecluster.name=${clusterName}`,
+    `-Enode.name=${nodeName}`,
+    `-Ehttp.port=${port}`,
+  ];
 
-  const server = execa(
-    binaryFilepath,
-   ,
-    {env: {
-      ZINC_SERVER_PORT: port,
-      ZINC_TELEMETRY: false,
-    }}
-  );
-  await waitForLocalhost({port});
-  debug('Zinc is running');
-}
+  const server = await execa(binaryFilepath, execArgs);
 
+  await waitForLocalhost(port);
+  debug(`${engine} is running`, server);
+};
 
-export default const start = () => {
-  // start zinc
-  startEgin()
-}
+export const start = async (startOptions: StartOptions) => {
+  const {
+    engine = EngineType.ELASTICSEARCH,
+    version = '8.8.2',
+    binaryLocation = `${cwd()}/node_modules/.cache/jest-search`,
+  } = startOptions;
 
-
+  const binaryFilepath = await prepareEngine(engine, version, binaryLocation);
+  // start engine
+  await startEngine({ ...startOptions, binaryFilepath });
+};

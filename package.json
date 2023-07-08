@@ -1,5 +1,5 @@
 {
-  "name": "jest-elasticsearch",
+  "name": "jest-search",
   "version": "1.0.0",
   "description": "Jest preset for running tests with local ElasticSearch power by Zinc",
   "main": "index.js",
@@ -11,28 +11,30 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/geek-fun/jest-elasticsearch.git"
+    "url": "git+https://github.com/geek-fun/jest-search.git"
   },
   "keywords": [
     "jest",
     "elasticSearch",
+    "openSearch",
     "zinc"
   ],
   "author": "geek-fun",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/geek-fun/jest-elasticsearch/issues"
+    "url": "https://github.com/geek-fun/jest-search/issues"
   },
-  "homepage": "https://github.com/geek-fun/jest-elasticsearch#readme",
+  "homepage": "https://github.com/geek-fun/jest-search#readme",
   "devDependencies": {
     "@types/cwd": "^0.10.0",
     "@types/debug": "^4.1.7",
     "@types/jest": "^29.2.3",
     "@types/node": "^18.11.10",
-    "@typescript-eslint/eslint-plugin": "^5.45.0",
-    "@typescript-eslint/parser": "^5.45.0",
-    "eslint": "^8.28.0",
-    "eslint-config-prettier": "^8.5.0",
+    "@typescript-eslint/eslint-plugin": "^5.59.5",
+    "@typescript-eslint/parser": "^5.59.5",
+    "eslint": "^8.40.0",
+    "eslint-config-prettier": "^8.8.0",
+    "eslint-plugin-prettier": "^4.2.1",
     "jest": "^29.3.1",
     "prettier": "^2.8.0",
     "ts-jest": "^29.0.3",
@@ -41,6 +43,7 @@
   "dependencies": {
     "cwd": "^0.10.0",
     "debug": "^4.3.4",
+    "download-tarball": "^2.0.0",
     "execa": "^6.1.0"
   }
 }
