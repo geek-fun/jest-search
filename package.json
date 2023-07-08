@@ -1,8 +1,11 @@
 {
   "name": "jest-search",
   "version": "1.0.0",
-  "description": "Jest preset for running tests with local ElasticSearch power by Zinc",
   "main": "index.js",
+  "description": "Jest preset for running tests with local ElasticSearch power by Zinc",
+  "homepage": "https://github.com/geek-fun/jest-search#readme",
+  "author": "geek-fun",
+  "license": "MIT",
   "scripts": {
     "build": "tsc --build",
     "lint:fix": "eslint --fix ./",
@@ -14,17 +17,20 @@
     "url": "git+https://github.com/geek-fun/jest-search.git"
   },
   "keywords": [
-    "jest",
     "elasticSearch",
     "openSearch",
     "zinc"
   ],
-  "author": "geek-fun",
-  "license": "MIT",
+
   "bugs": {
     "url": "https://github.com/geek-fun/jest-search/issues"
   },
-  "homepage": "https://github.com/geek-fun/jest-search#readme",
+  "dependencies": {
+    "cwd": "^0.10.0",
+    "debug": "^4.3.4",
+    "download-tarball": "^2.0.0",
+    "execa": "^5.1.1"
+  },
   "devDependencies": {
     "@types/cwd": "^0.10.0",
     "@types/debug": "^4.1.8",
@@ -39,11 +45,5 @@
     "prettier": "^3.0.0",
     "ts-jest": "^29.1.1",
     "typescript": "^5.1.6"
-  },
-  "dependencies": {
-    "cwd": "^0.10.0",
-    "debug": "^4.3.4",
-    "download-tarball": "^2.0.0",
-    "execa": "^7.1.1"
   }
 }
