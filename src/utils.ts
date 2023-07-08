@@ -1,20 +1,29 @@
 import http from 'http';
-import fs, { access, constants } from 'fs';
-import https from 'https';
-import { debug } from 'console';
+import { access, constants } from 'fs';
 import { promisify } from 'util';
 import { execa } from 'execa';
 
-export const waitForLocalhost = async (port: number, path?: string, useGet?: boolean) => {
+export const waitForLocalhost = async ({
+  port,
+  path,
+  retries = 60,
+}: {
+  port: number;
+  path?: string;
+  retries?: number;
+}) => {
+  let retryCount = 0;
   return new Promise((resolve) => {
     const retry = () => {
-      setTimeout(main, 200);
+      if (retryCount === retries) {
+        throw new Error('failed start search engine');
+      }
+      setTimeout(main, 2000);
+      retryCount++;
     };
 
-    const method = useGet ? 'GET' : 'HEAD';
-
     const doRequest = (next: () => void) => {
-      const request = http.request({ method, port, path }, ({ statusCode }) => {
+      const request = http.request({ method: 'GET', port, path }, ({ statusCode }) => {
         if (statusCode === 200) {
           resolve({ statusCode });
           return;

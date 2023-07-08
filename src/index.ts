@@ -1,3 +1,2 @@
-
-export const globalSetup =  ''
-export const globalTeardown = ""
+export const globalSetup = '';
+export const globalTeardown = '';

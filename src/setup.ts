@@ -21,7 +21,11 @@ export type StartOptions = {
   port: number;
   indexes: Array<string>;
 };
-
+const artifacts = {
+  ES: 'https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch',
+  OS: 'https://artifacts.opensearch.org/releases/bundle/opensearch',
+  ZINC: 'https://github.com/zinclabs/zinc/releases/download',
+};
 const getEngineResourceURL = async (engine: EngineType, version: string) => {
   const { sysName, arch } = await platform();
   const engines: {
@@ -29,16 +33,13 @@ const getEngineResourceURL = async (engine: EngineType, version: string) => {
   } = {
     [EngineType.ELASTICSEARCH]: () =>
       parseInt(version.charAt(0)) >= 7
-        ? `https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-${version}-${sysName}-${arch}.tar.gz`
-        : `https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-${version}.tar.gz`,
+        ? `${artifacts.ES}-${version}-${sysName}-${arch}.tar.gz`
+        : `${artifacts.ES}-${version}.tar.gz`,
 
     [EngineType.OPENSEARCH]: () =>
-      `https://artifacts.opensearch.org/releases/bundle/opensearch/${version}/opensearch-${version}-${sysName}-${arch.slice(
-        1,
-        4
-      )}.tar.gz`,
+      `${artifacts.OS}/${version}/opensearch-${version}-${sysName}-${arch.slice(1, 4)}.tar.gz`,
     [EngineType.ZINC]: () =>
-      `https://github.com/zinclabs/zinc/releases/download/v${version}/zinc_${version}_${sysName}_${arch}.tar.gz`,
+      `${artifacts.ZINC}/v${version}/zinc_${version}_${sysName}_${arch}.tar.gz`,
   };
 
   return engines[engine]();
@@ -75,7 +76,7 @@ const startEngine = async ({
 
   const server = await execa(binaryFilepath, execArgs);
 
-  await waitForLocalhost(port);
+  await waitForLocalhost({ port });
   debug(`${engine} is running`, server);
 };
 
