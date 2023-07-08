@@ -1,8 +1,8 @@
-import http from 'http';
 import { access, constants } from 'fs';
 import { promisify } from 'util';
 import execa from 'execa';
 import { debug } from 'console';
+import { execSync } from 'child_process';
 
 export const waitForLocalhost = async (port: number, retries = 60) => {
   debug(`checking the local engine startup: ${retries}`);
@@ -10,20 +10,18 @@ export const waitForLocalhost = async (port: number, retries = 60) => {
   if (retries <= 0) {
     throw new Error('failed start search engine');
   }
-  const statusCode = await new Promise((resolve, _) =>
-    http
-      .get(`http://localhost:${port}`, { family: 4 }, (res) => {
-        return resolve(res.statusCode);
-      })
-      .on('error', (e) => {
-        return resolve(500);
-      }),
-  ).then((statusCode) => statusCode);
+  let statusCode;
+  const response = await execSync(
+    'curl -s -o /dev/null -i -w "%{http_code}" "http://localhost:9200" || true',
+    { env: { http_proxy: undefined, https_proxy: undefined, all_proxy: undefined } },
+  );
+
+  statusCode = parseInt(response.toString('utf-8'), 10);
+  debug(`curl response: ${statusCode}`);
 
   if (statusCode !== 200) {
     await waitForLocalhost(port, retries - 1);
   } else {
-    await new Promise((resolve, _) => setTimeout(() => resolve(0), 2000));
     debug('engine started');
   }
 };

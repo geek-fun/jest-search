@@ -80,7 +80,7 @@ const start = async (
   server = execa(`${binaryFilepath}/bin/elasticsearch`, esExecArgs, { all: true });
 
   await waitForLocalhost(port);
-  debug(`${engine} is running`, server);
+  debug(`${engine} is running`, { port: port, pid: server.pid });
 };
 
 const cleanupIndices = (options: { indexes?: Array<string> }): void => {
