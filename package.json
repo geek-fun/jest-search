@@ -1,10 +1,10 @@
 {
-  "name": "jest-search",
+  "name": "@geekfun/jest-search",
   "version": "0.0.1",
   "main": "src/index.js",
   "description": "Jest preset for running tests with local ElasticSearch power by Zinc",
   "homepage": "https://github.com/geek-fun/jest-search#readme",
-  "author": "geek-fun",
+  "author": "geekfun <support@geekfun.club>",
   "license": "MIT",
   "scripts": {
     "build": "tsc --build",
@@ -42,5 +42,8 @@
     "prettier": "^2.8.8",
     "ts-jest": "^29.1.1",
     "typescript": "^5.1.6"
+  },
+  "directories": {
+    "test": "tests"
   }
 }
