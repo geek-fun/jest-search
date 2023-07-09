@@ -25,13 +25,11 @@
     "url": "https://github.com/geek-fun/jest-search/issues"
   },
   "dependencies": {
-    "cwd": "^0.10.0",
     "debug": "^4.3.4",
     "download-tarball": "^2.0.0",
     "execa": "^5.1.1"
   },
   "devDependencies": {
-    "@types/cwd": "^0.10.0",
     "@types/debug": "^4.1.8",
     "@types/jest": "^29.5.2",
     "@types/node": "^20.4.1",

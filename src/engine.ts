@@ -1,11 +1,11 @@
 import execa from 'execa';
-import cwd from 'cwd';
-import { debug } from 'console';
+import { debug } from 'debug';
 import { getError, isFileExists, platform, waitForLocalhost } from './utils';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import download from 'download-tarball';
 import { execSync } from 'child_process';
+import path from 'path';
 
 export enum EngineType {
   ZINC = 'zinc',
@@ -67,7 +67,7 @@ const start = async (
 ) => {
   engineOptions = options;
   const { engine, version, binaryFilepath, clusterName, nodeName, port = 9200 } = options;
-  debug(`Starting ${engine} ${version}`, binaryFilepath);
+  debug(`Starting ${engine} ${version}, ${binaryFilepath}`);
   const esExecArgs = [
     '-p',
     `${binaryFilepath}/${engine}-${version}/es-pid`,
@@ -80,7 +80,7 @@ const start = async (
   server = execa(`${binaryFilepath}/bin/elasticsearch`, esExecArgs, { all: true });
 
   await waitForLocalhost(port);
-  debug(`${engine} is running`, { port: port, pid: server.pid });
+  debug(`${engine} is running on port: ${port}, pid: ${server.pid}`);
 };
 
 const cleanupIndices = (options: { indexes?: Array<string> }): void => {
@@ -109,7 +109,7 @@ const killProcess = async (): Promise<void> => {
     server.kill('SIGTERM', { forceKillAfterTimeout: 2000 });
 
     const result = await Promise.race([closeEmit, timeoutEmit]);
-    debug('close result', result);
+    debug(`close result, ${result}`);
   } catch (e) {
     debug(`Could not stop ${engineOptions.engine}, killing system wide`);
   }
@@ -119,7 +119,7 @@ export const startEngine = async ({
   engine = EngineType.ELASTICSEARCH,
   version = '8.8.2',
   port = 9200,
-  binaryLocation = `${cwd()}/node_modules/.cache/jest-search`,
+  binaryLocation = path.resolve(__dirname + '/../') + '/node_modules/.cache/jest-search',
   clusterName = 'jest-search-local',
   nodeName = 'jest-search-local',
 }: EngineOptions = {}) => {
