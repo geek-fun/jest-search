@@ -1,0 +1,27 @@
+name: Node.js CI
+
+on:
+  push:
+    branches:  [master]
+  pull_request:
+    branches:  [master]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [12.17.0, 12.x, 14.x, 16.x, 18.x]
+
+    steps:
+      - uses: actions/checkout@latest
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@latest
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npx codecov
