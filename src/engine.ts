@@ -54,6 +54,7 @@ const prepareEngine = async (engine: EngineType, version: string, binaryLocation
 
   debug(`checking if binary exists: ${binaryFilepath}`);
   if (!(await isFileExists(binaryFilepath))) {
+    debug(`downloading binary, url: ${url}, path: ${binaryFilepath}`);
     await download({ url, dir: binaryLocation });
     debug(`Downloaded ${engine}`);
   } else {
