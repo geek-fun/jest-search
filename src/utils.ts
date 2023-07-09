@@ -40,7 +40,7 @@ export const isFileExists = async (path: string): Promise<boolean> => {
 
 export const platform = async () => {
   debug('checking platform');
-  const { stdout: sysName } = await execa('uname', ['-o']);
+  const { stdout: sysName } = await execa('uname', ['-s']);
   const { stdout: arch } = await execa('uname', ['-m']);
 
   return { sysName: sysName.toLowerCase(), arch: arch.toLowerCase() };
