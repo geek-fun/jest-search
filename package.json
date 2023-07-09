@@ -1,7 +1,7 @@
 {
   "name": "jest-search",
-  "version": "1.0.0",
-  "main": "index.js",
+  "version": "0.0.1",
+  "main": "src/index.js",
   "description": "Jest preset for running tests with local ElasticSearch power by Zinc",
   "homepage": "https://github.com/geek-fun/jest-search#readme",
   "author": "geek-fun",
@@ -21,7 +21,6 @@
     "openSearch",
     "zinc"
   ],
-
   "bugs": {
     "url": "https://github.com/geek-fun/jest-search/issues"
   },
