@@ -10,7 +10,7 @@
     "build": "tsc --build",
     "lint:fix": "eslint --fix ./",
     "lint:check": "eslint ./",
-    "test": "jest --runInBand --coverage --coverageReporters json-summary text html lcov"
+    "test": "DEBUG='jest-search' jest --runInBand --coverage --coverageReporters json-summary text html lcov"
   },
   "repository": {
     "type": "git",

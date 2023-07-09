@@ -1,11 +1,11 @@
 import execa from 'execa';
-import { debug } from 'debug';
 import { getError, isFileExists, platform, waitForLocalhost } from './utils';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import download from 'download-tarball';
 import { execSync } from 'child_process';
 import path from 'path';
+import { debug } from './debug';
 
 export enum EngineType {
   ZINC = 'zinc',
@@ -52,6 +52,7 @@ const prepareEngine = async (engine: EngineType, version: string, binaryLocation
   const url = await getEngineResourceURL(engine, version);
   const binaryFilepath = `${binaryLocation}/${engine}-${version}`;
 
+  debug(`checking if binary exists: ${binaryFilepath}`);
   if (!(await isFileExists(binaryFilepath))) {
     await download({ url, dir: binaryLocation });
     debug(`Downloaded ${engine}`);

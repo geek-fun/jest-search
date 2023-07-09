@@ -1,8 +1,8 @@
 import { access, constants } from 'fs';
 import { promisify } from 'util';
 import execa from 'execa';
-import { debug } from 'console';
 import { execSync } from 'child_process';
+import { debug } from './debug';
 
 export const waitForLocalhost = async (port: number, retries = 60) => {
   debug(`checking the local engine startup: ${retries}`);
@@ -39,6 +39,7 @@ export const isFileExists = async (path: string): Promise<boolean> => {
 };
 
 export const platform = async () => {
+  debug('checking platform');
   const { stdout: sysName } = await execa('uname', ['-o']);
   const { stdout: arch } = await execa('uname', ['-m']);
 
