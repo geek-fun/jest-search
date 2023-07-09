@@ -1,8 +1,8 @@
 {
-  "name": "@geekfun/jest-search",
+  "name": "@geek-fun/jest-search",
   "version": "0.0.1",
   "main": "src/index.js",
-  "description": "Jest preset for running tests with local ElasticSearch power by Zinc",
+  "description": "Jest preset for running tests with local search platform",
   "homepage": "https://github.com/geek-fun/jest-search#readme",
   "author": "geekfun <support@geekfun.club>",
   "license": "MIT",
