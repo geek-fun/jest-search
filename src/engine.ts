@@ -22,6 +22,7 @@ export type EngineOptions = {
   port?: number;
   indexes?: Array<string>;
 };
+
 const artifacts = {
   ES: 'https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch',
   OS: 'https://artifacts.opensearch.org/releases/bundle/opensearch',
