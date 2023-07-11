@@ -20,7 +20,7 @@ npm install --save-dev @geek-fun/jest-search
 ```javascript
 module.exports = () => {
   return {
-    engine: 'elasticearch', // or 'opensearch' or 'zincsearch'
+    engine: 'elasticsearch', // or 'opensearch' or 'zincsearch'
     version: '8.8.2',
     port: 9200,
     binaryLocation: '', // optional
