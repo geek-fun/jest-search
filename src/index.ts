@@ -3,7 +3,7 @@ import path from 'path';
 
 const globalSetup = async () => {
   const configPath =
-    process.env.JEST_ELASTICSEARCH_CONFIG || path.resolve(__dirname + '/../jest-search-config.js');
+    process.env.JEST_SEARCH_CONFIG || path.resolve(process.cwd() + '/jest-search-config.js');
   const config = (await import(configPath))();
   await startEngine(config);
 };
