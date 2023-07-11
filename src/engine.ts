@@ -6,6 +6,7 @@ import download from 'download-tarball';
 import { execSync } from 'child_process';
 import path from 'path';
 import { debug } from './debug';
+import { ARTIFACTS, DISABLE_PROXY } from './constants';
 
 export enum EngineType {
   ZINC = 'zinc',
@@ -14,23 +15,18 @@ export enum EngineType {
 }
 
 export type EngineOptions = {
-  engine?: EngineType;
-  version?: string;
-  binaryLocation?: string;
-  clusterName?: string;
-  nodeName?: string;
-  port?: number;
-  indexes?: Array<string>;
+  engine: EngineType;
+  version: string;
+  binaryLocation: string;
+  clusterName: string;
+  nodeName: string;
+  port: number;
+  indexes: Array<{ name: string; body: unknown }>;
 };
-
-const artifacts = {
-  ES: 'https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch',
-  OS: 'https://artifacts.opensearch.org/releases/bundle/opensearch',
-  ZINC: 'https://github.com/zinclabs/zinc/releases/download',
-};
+type ConfiguredOptions = Omit<EngineOptions, 'binaryLocation'> & { binaryFilepath: string };
 
 let server: execa.ExecaChildProcess;
-let engineOptions: EngineOptions;
+let engineOptions: ConfiguredOptions;
 const getEngineResourceURL = async (engine: EngineType, version: string) => {
   const { sysName, arch } = await platform();
   const engines: {
@@ -38,13 +34,13 @@ const getEngineResourceURL = async (engine: EngineType, version: string) => {
   } = {
     [EngineType.ELASTICSEARCH]: () =>
       parseInt(version.charAt(0)) >= 7
-        ? `${artifacts.ES}-${version}-${sysName}-${arch}.tar.gz`
-        : `${artifacts.ES}-${version}.tar.gz`,
+        ? `${ARTIFACTS.ES}-${version}-${sysName}-${arch}.tar.gz`
+        : `${ARTIFACTS.ES}-${version}.tar.gz`,
 
     [EngineType.OPENSEARCH]: () =>
-      `${artifacts.OS}/${version}/opensearch-${version}-${sysName}-${arch.slice(1, 4)}.tar.gz`,
+      `${ARTIFACTS.OS}/${version}/opensearch-${version}-${sysName}-${arch.slice(1, 4)}.tar.gz`,
     [EngineType.ZINC]: () =>
-      `${artifacts.ZINC}/v${version}/zinc_${version}_${sysName}_${arch}.tar.gz`,
+      `${ARTIFACTS.ZINC}/v${version}/zinc_${version}_${sysName}_${arch}.tar.gz`,
   };
 
   return engines[engine]();
@@ -64,12 +60,29 @@ const prepareEngine = async (engine: EngineType, version: string, binaryLocation
 
   return binaryFilepath;
 };
+const createIndexes = async () => {
+  const { indexes = [], port, engine } = engineOptions;
 
-const start = async (
-  options: Omit<EngineOptions, 'binaryLocation'> & { binaryFilepath: string }
-) => {
-  engineOptions = options;
-  const { engine, version, binaryFilepath, clusterName, nodeName, port = 9200 } = options;
+  const curlCommands: {
+    [engineType: string]: (indexItem: { name: string; body: unknown }) => string;
+  } = {
+    [EngineType.ELASTICSEARCH]: ({ name, body }: { name: string; body: unknown }) =>
+      `curl -XPUT "http://localhost:${port}/${name}" -H "Content-Type: application/json" -d'${JSON.stringify(
+        body
+      )}'`,
+    [EngineType.OPENSEARCH]: ({ name, body }: { name: string; body: unknown }) =>
+      `curl -XPUT "http://localhost:${port}/${name}" -H "Content-Type: application/json" -d'${JSON.stringify(
+        body
+      )}'`,
+  };
+  debug('creating indexes');
+  await Promise.all(
+    indexes.map(async (index) => await execSync(curlCommands[engine](index), DISABLE_PROXY))
+  );
+};
+
+const start = async () => {
+  const { engine, version, binaryFilepath, clusterName, nodeName, port } = engineOptions;
   debug(`Starting ${engine} ${version}, ${binaryFilepath}`);
   const esExecArgs = [
     '-p',
@@ -84,24 +97,27 @@ const start = async (
 
   await waitForLocalhost(port);
   debug(`${engine} is running on port: ${port}, pid: ${server.pid}`);
+  await createIndexes();
+
+  debug(`indexes created`);
 };
 
-const cleanupIndices = (options: { indexes?: Array<string> }): void => {
-  const indexes = options.indexes?.join(',');
+const cleanupIndices = async (): Promise<void> => {
+  const { port, indexes } = engineOptions;
+  if (indexes.length <= 0) return;
+  debug(' deleting indexes');
+  const result = execSync(
+    `curl -s -X DELETE http://localhost:${port}/${indexes.map(({ name }) => name).join(',')}`,
+    DISABLE_PROXY
+  );
 
-  if (indexes) {
-    const result = execSync(`curl -s -X DELETE http://localhost/${indexes}`, {
-      env: { http_proxy: undefined, https_proxy: undefined, all_proxy: undefined },
-    });
+  const error = getError(result);
 
-    const error = getError(result);
-
-    if (error) {
-      throw new Error(`Failed to remove index: ${error.reason}`);
-    }
-
-    debug('Removed all indexes');
+  if (error) {
+    throw new Error(`Failed to remove index: ${error.reason}`);
   }
+
+  debug('Removed all indexes');
 };
 
 const killProcess = async (): Promise<void> => {
@@ -125,14 +141,16 @@ export const startEngine = async ({
   binaryLocation = path.resolve(__dirname + '/../') + '/node_modules/.cache/jest-search',
   clusterName = 'jest-search-local',
   nodeName = 'jest-search-local',
-}: EngineOptions = {}) => {
+  indexes = [],
+}: Partial<EngineOptions> = {}) => {
   const binaryFilepath = await prepareEngine(engine, version, binaryLocation);
+  engineOptions = { engine, version, port, clusterName, nodeName, binaryFilepath, indexes };
   // start engine
-  await start({ engine, version, port, clusterName, nodeName, binaryFilepath });
+  await start();
 };
 
 export const stopEngine = async (): Promise<void> => {
-  cleanupIndices({ indexes: engineOptions.indexes });
+  await cleanupIndices();
   await killProcess();
 
   debug('ES has been stopped');

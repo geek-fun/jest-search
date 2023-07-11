@@ -3,6 +3,7 @@ import { promisify } from 'util';
 import execa from 'execa';
 import { execSync } from 'child_process';
 import { debug } from './debug';
+import { DISABLE_PROXY } from './constants';
 
 export const waitForLocalhost = async (port: number, retries = 60) => {
   debug(`checking the local engine startup: ${retries}`);
@@ -13,7 +14,7 @@ export const waitForLocalhost = async (port: number, retries = 60) => {
 
   const response = execSync(
     'curl -s -o /dev/null -i -w "%{http_code}" "http://localhost:9200" || true',
-    { env: { http_proxy: undefined, https_proxy: undefined, all_proxy: undefined } }
+    DISABLE_PROXY
   );
 
   const statusCode = parseInt(response.toString('utf-8'), 10);
