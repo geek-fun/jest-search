@@ -8,10 +8,9 @@ const globalSetup = async () => {
   debug(`configPath: ${configPath}, cwdPath: ${process.cwd()}`);
   try {
     const configFn = await import(configPath);
-    debug(`configFn: ${configFn}`);
-    const config = configFn();
-    debug(`final config: ${config}`);
-    await startEngine(config);
+    debug(`configFn: ${JSON.stringify(configFn)}`);
+    debug(`final config: ${configFn}`);
+    await startEngine(configFn);
   } catch (err) {
     debug(`error caught: ${err}`);
     throw err;
