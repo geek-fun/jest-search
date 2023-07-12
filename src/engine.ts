@@ -27,6 +27,7 @@ type ConfiguredOptions = Omit<EngineOptions, 'binaryLocation'> & { binaryFilepat
 
 let server: execa.ExecaChildProcess;
 let engineOptions: ConfiguredOptions;
+// 'https://artifacts.opensearch.org/releases/core/opensearch/2.8.0/opensearch-min-2.8.0-linux-x64.tar.gz'
 const getEngineResourceURL = async (engine: EngineType, version: string) => {
   const { sysName, arch } = await platform();
   const engines: {
@@ -36,9 +37,8 @@ const getEngineResourceURL = async (engine: EngineType, version: string) => {
       parseInt(version.charAt(0)) >= 7
         ? `${ARTIFACTS.ES}-${version}-${sysName}-${arch}.tar.gz`
         : `${ARTIFACTS.ES}-${version}.tar.gz`,
-
     [EngineType.OPENSEARCH]: () =>
-      `${ARTIFACTS.OS}/${version}/opensearch-${version}-${sysName}-${arch.slice(1, 4)}.tar.gz`,
+      `${ARTIFACTS.OS}/${version}/opensearch-${version}-linux-${arch.replace('86_', '')}.tar.gz`,
     [EngineType.ZINC]: () =>
       `${ARTIFACTS.ZINC}/v${version}/zinc_${version}_${sysName}_${arch}.tar.gz`,
   };
@@ -84,16 +84,26 @@ const createIndexes = async () => {
 const start = async () => {
   const { engine, version, binaryFilepath, clusterName, nodeName, port } = engineOptions;
   debug(`Starting ${engine} ${version}, ${binaryFilepath}`);
-  const esExecArgs = [
-    '-p',
-    `${binaryFilepath}/${engine}-${version}/es-pid`,
-    `-Ecluster.name=${clusterName}`,
-    `-Enode.name=${nodeName}`,
-    `-Ehttp.port=${port}`,
-    `-Expack.security.enabled=false`,
-  ];
+  const startMatrix: { [key: string]: Array<string> } = {
+    [EngineType.ELASTICSEARCH]: [
+      '-p',
+      `${binaryFilepath}/${engine}-${version}/server-pid`,
+      `-Ecluster.name=${clusterName}`,
+      `-Enode.name=${nodeName}`,
+      `-Ehttp.port=${port}`,
+      `-Expack.security.enabled=false`,
+    ],
+    [EngineType.OPENSEARCH]: [
+      '-p',
+      `${binaryFilepath}/${engine}-${version}/server-pid`,
+      `-Ecluster.name=${clusterName}`,
+      `-Enode.name=${nodeName}`,
+      `-Ehttp.port=${port}`,
+      `-Eplugins.security.disabled=true`,
+    ],
+  };
 
-  server = execa(`${binaryFilepath}/bin/elasticsearch`, esExecArgs, { all: true });
+  server = execa(`${binaryFilepath}/bin/${engine}`, startMatrix[engine], { all: true });
 
   await waitForLocalhost(port);
   debug(`${engine} is running on port: ${port}, pid: ${server.pid}`);
