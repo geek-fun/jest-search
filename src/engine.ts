@@ -87,7 +87,7 @@ const start = async () => {
   const startMatrix: { [key: string]: Array<string> } = {
     [EngineType.ELASTICSEARCH]: [
       '-p',
-      `${binaryFilepath}/${engine}-${version}/server-pid`,
+      `${binaryFilepath}/server-pid`,
       `-Ecluster.name=${clusterName}`,
       `-Enode.name=${nodeName}`,
       `-Ehttp.port=${port}`,
@@ -95,7 +95,7 @@ const start = async () => {
     ],
     [EngineType.OPENSEARCH]: [
       '-p',
-      `${binaryFilepath}/${engine}-${version}/server-pid`,
+      `${binaryFilepath}/server-pid`,
       `-Ecluster.name=${clusterName}`,
       `-Enode.name=${nodeName}`,
       `-Ehttp.port=${port}`,
