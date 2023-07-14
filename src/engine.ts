@@ -102,7 +102,6 @@ const start = async () => {
       `-Eplugins.security.disabled=true`,
     ],
   };
-
   server = execa(`${binaryFilepath}/bin/${engine}`, startMatrix[engine], { all: true });
 
   await waitForLocalhost(port);
@@ -133,12 +132,14 @@ const cleanupIndices = async (): Promise<void> => {
 const killProcess = async (): Promise<void> => {
   try {
     const closeEmit = new Promise((resolve) => server.on('close', () => resolve('close')));
-    const timeoutEmit = new Promise((resolve) => setTimeout(() => resolve('timout'), 3000));
 
     server.kill('SIGTERM', { forceKillAfterTimeout: 2000 });
 
-    const result = await Promise.race([closeEmit, timeoutEmit]);
-    debug(`close result, ${result}`);
+    const result = await Promise.race([
+      closeEmit,
+      new Promise((resolve) => setTimeout(() => resolve('timout'), 3000)),
+    ]);
+    debug(`close result: ${result}`);
   } catch (e) {
     debug(`Could not stop ${engineOptions.engine}, killing system wide`);
   }

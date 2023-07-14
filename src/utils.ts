@@ -13,7 +13,7 @@ export const waitForLocalhost = async (port: number, retries = 60) => {
   }
 
   const response = execSync(
-    'curl -s -o /dev/null -i -w "%{http_code}" "http://localhost:9200" || true',
+    `curl -s -o /dev/null -i -w "%{http_code}" "http://localhost:${port}" || true`,
     DISABLE_PROXY
   );
 

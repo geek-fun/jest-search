@@ -1,6 +1,7 @@
 import { EngineType, startEngine, stopEngine } from '../src/engine';
 import { execSync } from 'child_process';
 import { DISABLE_PROXY } from '../src/constants';
+import { v4 as uuid } from 'uuid';
 
 const indexes = [
   {
@@ -66,34 +67,62 @@ describe(`unit test for default config`, () => {
     });
   });
 });
-
+const getRandomInt = (min = 1025, max = 9999) => Math.floor(Math.random() * (max - min) + min);
 [
-  { engine: EngineType.ELASTICSEARCH, version: '8.8.2', indexes: indexes },
-  { engine: EngineType.OPENSEARCH, version: '2.8.0', indexes: indexes },
+  {
+    engine: EngineType.ELASTICSEARCH,
+    version: '8.8.2',
+    port: getRandomInt(),
+    clusterName: uuid(),
+    nodeName: uuid(),
+    indexes,
+  },
+  {
+    engine: EngineType.ELASTICSEARCH,
+    version: '7.17.11',
+    port: getRandomInt(),
+    clusterName: uuid(),
+    nodeName: uuid(),
+    indexes,
+  },
+  {
+    engine: EngineType.OPENSEARCH,
+    version: '2.8.0',
+    port: getRandomInt(),
+    clusterName: uuid(),
+    nodeName: uuid(),
+    indexes: indexes,
+  },
+  {
+    engine: EngineType.OPENSEARCH,
+    version: '1.3.10',
+    port: getRandomInt(),
+    clusterName: uuid(),
+    nodeName: uuid(),
+    indexes: indexes,
+  },
   // { engine: EngineType.ZINC, version: '1.0.0', indexes: indexes },
-].forEach(({ engine, version, indexes }) => {
-  describe(`unit test for ${engine}`, () => {
+].forEach(({ engine, version, indexes, port, clusterName, nodeName }) => {
+  describe(`unit test for ${engine}-${version}:${port}`, () => {
     it(`should start ${engine}-${version} and create index`, async () => {
-      await startEngine({ engine, version, indexes });
+      await startEngine({ engine, version, port, clusterName, nodeName, indexes });
 
-      const inspect = await execSync('curl -s "http://localhost:9200/?pretty"', {
-        env: { http_proxy: undefined, https_proxy: undefined, all_proxy: undefined },
-      });
+      const inspect = await execSync(`curl -s "http://localhost:${port}/?pretty"`, DISABLE_PROXY);
       const mapping = await execSync(
-        'curl -s "http://localhost:9200/books/_mapping?pretty"',
+        `curl -s "http://localhost:${port}/books/_mapping?pretty"`,
         DISABLE_PROXY
       );
 
       await stopEngine();
 
       expect(JSON.parse(inspect.toString())).toMatchObject({
-        name: 'jest-search-local',
-        cluster_name: 'jest-search-local',
+        name: nodeName,
+        cluster_name: clusterName,
         version: {
           number: version,
           build_type: 'tar',
           build_snapshot: false,
-          lucene_version: '9.6.0',
+          lucene_version: expect.any(String),
           minimum_wire_compatibility_version: expect.any(String),
           minimum_index_compatibility_version: expect.any(String),
         },
