@@ -61,7 +61,7 @@ const prepareEngine = async (engine: EngineType, version: string, binaryLocation
   return binaryFilepath;
 };
 const createIndexes = async () => {
-  const { indexes = [], port, engine } = engineOptions;
+  const { indexes, port, engine } = engineOptions;
 
   const curlCommands: {
     [engineType: string]: (indexItem: { name: string; body: unknown }) => string;

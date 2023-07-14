@@ -3,6 +3,8 @@ import { execSync } from 'child_process';
 import { DISABLE_PROXY } from '../src/constants';
 import { v4 as uuid } from 'uuid';
 
+const getRandomInt = (min = 1025, max = 9999) => Math.floor(Math.random() * (max - min) + min);
+
 const indexes = [
   {
     name: 'books',
@@ -23,6 +25,53 @@ const indexes = [
       },
     },
   },
+];
+
+const engineMartix = [
+  {
+    engine: EngineType.ELASTICSEARCH,
+    version: '8.8.2',
+    port: getRandomInt(),
+    clusterName: uuid(),
+    nodeName: uuid(),
+    indexes,
+  },
+  {
+    engine: EngineType.ELASTICSEARCH,
+    version: '7.17.11',
+    port: getRandomInt(),
+    clusterName: uuid(),
+    nodeName: uuid(),
+    indexes,
+  },
+  {
+    engine: EngineType.ELASTICSEARCH,
+    version: '6.8.23',
+    port: getRandomInt(),
+    clusterName: uuid(),
+    nodeName: uuid(),
+    indexes: indexes.map((conf) => ({
+      ...conf,
+      body: { ...conf.body, mappings: { _doc: conf.body.mappings } },
+    })),
+  },
+  {
+    engine: EngineType.OPENSEARCH,
+    version: '2.8.0',
+    port: getRandomInt(),
+    clusterName: uuid(),
+    nodeName: uuid(),
+    indexes: indexes,
+  },
+  {
+    engine: EngineType.OPENSEARCH,
+    version: '1.3.10',
+    port: getRandomInt(),
+    clusterName: uuid(),
+    nodeName: uuid(),
+    indexes: indexes,
+  },
+  // { engine: EngineType.ZINC, version: '1.0.0', indexes: indexes },
 ];
 
 describe(`unit test for default config`, () => {
@@ -67,42 +116,10 @@ describe(`unit test for default config`, () => {
     });
   });
 });
-const getRandomInt = (min = 1025, max = 9999) => Math.floor(Math.random() * (max - min) + min);
-[
-  {
-    engine: EngineType.ELASTICSEARCH,
-    version: '8.8.2',
-    port: getRandomInt(),
-    clusterName: uuid(),
-    nodeName: uuid(),
-    indexes,
-  },
-  {
-    engine: EngineType.ELASTICSEARCH,
-    version: '7.17.11',
-    port: getRandomInt(),
-    clusterName: uuid(),
-    nodeName: uuid(),
-    indexes,
-  },
-  {
-    engine: EngineType.OPENSEARCH,
-    version: '2.8.0',
-    port: getRandomInt(),
-    clusterName: uuid(),
-    nodeName: uuid(),
-    indexes: indexes,
-  },
-  {
-    engine: EngineType.OPENSEARCH,
-    version: '1.3.10',
-    port: getRandomInt(),
-    clusterName: uuid(),
-    nodeName: uuid(),
-    indexes: indexes,
-  },
-  // { engine: EngineType.ZINC, version: '1.0.0', indexes: indexes },
-].forEach(({ engine, version, indexes, port, clusterName, nodeName }) => {
+
+engineMartix.forEach((engineConfig) => {
+  const { engine, version, indexes, port, clusterName, nodeName } = engineConfig;
+
   describe(`unit test for ${engine}-${version}:${port}`, () => {
     it(`should start ${engine}-${version} and create index`, async () => {
       await startEngine({ engine, version, port, clusterName, nodeName, indexes });
@@ -130,9 +147,7 @@ const getRandomInt = (min = 1025, max = 9999) => Math.floor(Math.random() * (max
       });
 
       expect(JSON.parse(mapping.toString())).toEqual({
-        books: {
-          mappings: { properties: { author: { type: 'keyword' }, name: { type: 'text' } } },
-        },
+        books: { mappings: indexes[0].body.mappings },
       });
     });
   });
