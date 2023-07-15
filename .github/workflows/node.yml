@@ -9,7 +9,6 @@ on:
 jobs:
   build:
     strategy:
-      max-parallel: 1
       matrix:
         os: [macos-latest, ubuntu-latest]
         node-version: [16.x, 18.x]
