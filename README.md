@@ -31,6 +31,8 @@ module.exports = () => {
     binaryLocation: '', // optional
     clusterName: 'jest-search-local',
     nodeName: 'jest-search-local',
+    zincAdmin: 'admin',
+    zincPassword: 'Complexpass#123',
     indexes: [
       {
         name: 'index-name',
@@ -82,6 +84,11 @@ module.exports = () => {
 - nodeName: engine's nodeName default: `jest-search-local`
 
 - indexes: specify the configuration like index name, and mapping of  indexes that you want to create during the startup, and indexes will get deleted once test is finished: default: `[]`
+
+- zincAdmin:<string> zincsearch requires pass env `ZINC_FIRST_ADMIN_USER` when starting zincsearch, default:  `admin`,
+
+- zincPassword: <string> :  zincsearch requires pass env `ZINC_FIRST_ADMIN_PASSWORD` when starting zincsearch, default:  `Complexpass#123`
+
 
 
 
@@ -136,4 +143,3 @@ beforeAll(async () => {
 ### Known issues
 
 1. Windows is not on the support list yet, I didn't see the necessity of it yet, feel free to reach out if you have the needs to use it on Windows, then will prioritize it
-2. ZincSearch is working in progress

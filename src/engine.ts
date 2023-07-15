@@ -7,13 +7,14 @@ import { execSync } from 'child_process';
 import path from 'path';
 import { debug } from './debug';
 import { ARTIFACTS, DISABLE_PROXY } from './constants';
+import { downloadZinc, startZinc } from './zinc';
 
 export enum EngineType {
-  ZINC = 'zinc',
+  ZINCSEARCH = 'zincsearch',
   ELASTICSEARCH = 'elasticsearch',
   OPENSEARCH = 'opensearch',
 }
-
+type IndexBody = { name: string; body?: unknown; mappings?: unknown };
 export type EngineOptions = {
   engine: EngineType;
   version: string;
@@ -21,13 +22,15 @@ export type EngineOptions = {
   clusterName: string;
   nodeName: string;
   port: number;
-  indexes: Array<{ name: string; body: unknown }>;
+  zincAdmin: string;
+  zincPassword: string;
+  indexes: Array<IndexBody>;
 };
-type ConfiguredOptions = Omit<EngineOptions, 'binaryLocation'> & { binaryFilepath: string };
+export type ConfiguredOptions = Omit<EngineOptions, 'binaryLocation'> & { binaryFilepath: string };
 
 let server: execa.ExecaChildProcess;
 let engineOptions: ConfiguredOptions;
-// 'https://artifacts.opensearch.org/releases/core/opensearch/2.8.0/opensearch-min-2.8.0-linux-x64.tar.gz'
+
 const getEngineResourceURL = async (engine: EngineType, version: string) => {
   const { sysName, arch } = await platform();
   const engines: {
@@ -39,8 +42,8 @@ const getEngineResourceURL = async (engine: EngineType, version: string) => {
         : `${ARTIFACTS.ES}-${version}.tar.gz`,
     [EngineType.OPENSEARCH]: () =>
       `${ARTIFACTS.OS}/${version}/opensearch-${version}-linux-${arch.replace('86_', '')}.tar.gz`,
-    [EngineType.ZINC]: () =>
-      `${ARTIFACTS.ZINC}/v${version}/zinc_${version}_${sysName}_${arch}.tar.gz`,
+    [EngineType.ZINCSEARCH]: () =>
+      `${ARTIFACTS.ZINC}/v${version}/zincsearch_${version}_${sysName}_${arch}.tar.gz`,
   };
 
   return engines[engine]();
@@ -48,6 +51,10 @@ const getEngineResourceURL = async (engine: EngineType, version: string) => {
 const prepareEngine = async (engine: EngineType, version: string, binaryLocation: string) => {
   const url = await getEngineResourceURL(engine, version);
   const binaryFilepath = `${binaryLocation}/${engine}-${version}`;
+  if (engine === EngineType.ZINCSEARCH) {
+    await downloadZinc(url, binaryFilepath);
+    return binaryFilepath;
+  }
 
   debug(`checking if binary exists: ${binaryFilepath}`);
   if (!(await isFileExists(binaryFilepath))) {
@@ -64,16 +71,20 @@ const createIndexes = async () => {
   const { indexes, port, engine } = engineOptions;
 
   const curlCommands: {
-    [engineType: string]: (indexItem: { name: string; body: unknown }) => string;
+    [engineType: string]: (indexItem: IndexBody) => string;
   } = {
-    [EngineType.ELASTICSEARCH]: ({ name, body }: { name: string; body: unknown }) =>
+    [EngineType.ELASTICSEARCH]: ({ name, body }: IndexBody) =>
       `curl -XPUT "http://localhost:${port}/${name}" -H "Content-Type: application/json" -d'${JSON.stringify(
         body
       )}'`,
-    [EngineType.OPENSEARCH]: ({ name, body }: { name: string; body: unknown }) =>
+    [EngineType.OPENSEARCH]: ({ name, body }: IndexBody) =>
       `curl -XPUT "http://localhost:${port}/${name}" -H "Content-Type: application/json" -d'${JSON.stringify(
         body
       )}'`,
+    [EngineType.ZINCSEARCH]: (index: IndexBody) =>
+      `curl -XPUT "http://localhost:${port}/api/index" -u ${engineOptions.zincAdmin}:${
+        engineOptions.zincPassword
+      } -H "Content-Type: application/json" -d'${JSON.stringify(index)}'`,
   };
   debug('creating indexes');
   await Promise.all(
@@ -84,27 +95,26 @@ const createIndexes = async () => {
 const start = async () => {
   const { engine, version, binaryFilepath, clusterName, nodeName, port } = engineOptions;
   debug(`Starting ${engine} ${version}, ${binaryFilepath}`);
-  const startMatrix: { [key: string]: Array<string> } = {
-    [EngineType.ELASTICSEARCH]: [
-      '-p',
-      `${binaryFilepath}/server-pid`,
-      `-Ecluster.name=${clusterName}`,
-      `-Enode.name=${nodeName}`,
-      `-Ehttp.port=${port}`,
-      `-Expack.security.enabled=false`,
-    ],
-    [EngineType.OPENSEARCH]: [
-      '-p',
-      `${binaryFilepath}/server-pid`,
-      `-Ecluster.name=${clusterName}`,
-      `-Enode.name=${nodeName}`,
-      `-Ehttp.port=${port}`,
-      `-Eplugins.security.disabled=true`,
-    ],
-  };
-  server = execa(`${binaryFilepath}/bin/${engine}`, startMatrix[engine], { all: true });
+  if (engine === EngineType.ZINCSEARCH) {
+    server = startZinc(engineOptions);
+  } else {
+    server = execa(
+      `${binaryFilepath}/bin/${engine}`,
+      [
+        '-p',
+        `${binaryFilepath}/server-pid`,
+        `-Ecluster.name=${clusterName}`,
+        `-Enode.name=${nodeName}`,
+        `-Ehttp.port=${port}`,
+        engine === EngineType.OPENSEARCH
+          ? `-Eplugins.security.disabled=true`
+          : `-Expack.security.enabled=false`,
+      ],
+      { all: true }
+    );
+  }
 
-  await waitForLocalhost(port);
+  await waitForLocalhost(engine, port);
   debug(`${engine} is running on port: ${port}, pid: ${server.pid}`);
   await createIndexes();
 
@@ -112,11 +122,13 @@ const start = async () => {
 };
 
 const cleanupIndices = async (): Promise<void> => {
-  const { port, indexes } = engineOptions;
+  const { engine, port, indexes, zincAdmin, zincPassword } = engineOptions;
   if (indexes.length <= 0) return;
   debug(' deleting indexes');
   const result = execSync(
-    `curl -s -X DELETE http://localhost:${port}/${indexes.map(({ name }) => name).join(',')}`,
+    engine === EngineType.ZINCSEARCH
+      ? `curl -s -X DELETE http://localhost:${port}/api/index/* -u ${zincAdmin}:${zincPassword}`
+      : `curl -s -X DELETE http://localhost:${port}/${indexes.map(({ name }) => name).join(',')}`,
     DISABLE_PROXY
   );
 
@@ -156,9 +168,21 @@ export const startEngine = async ({
   clusterName = 'jest-search-local',
   nodeName = 'jest-search-local',
   indexes = [],
+  zincAdmin = 'admin',
+  zincPassword = 'Complexpass#123',
 }: Partial<EngineOptions> = {}) => {
   const binaryFilepath = await prepareEngine(engine, version, binaryLocation);
-  engineOptions = { engine, version, port, clusterName, nodeName, binaryFilepath, indexes };
+  engineOptions = {
+    engine,
+    version,
+    port,
+    clusterName,
+    nodeName,
+    binaryFilepath,
+    indexes,
+    zincAdmin,
+    zincPassword,
+  };
   // start engine
   await start();
 };

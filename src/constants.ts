@@ -5,5 +5,5 @@ export const DISABLE_PROXY = {
 export const ARTIFACTS = {
   ES: 'https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch',
   OS: 'https://artifacts.opensearch.org/releases/bundle/opensearch',
-  ZINC: 'https://github.com/zinclabs/zinc/releases/download',
+  ZINC: 'https://github.com/zincsearch/zincsearch/releases/download',
 };
