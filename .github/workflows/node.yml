@@ -12,11 +12,17 @@ jobs:
       matrix:
         os: [macos-latest, ubuntu-latest]
         node-version: [16.x, 18.x]
+        java-version: [ '17' ]
 
     runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v3
+      - name: Use microsoft Java ${{ matrix.java-version }}
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'microsoft'
+          java-version: ${{ matrix.java-version }}
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v3
         with:
