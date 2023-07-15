@@ -131,17 +131,20 @@ const cleanupIndices = async (): Promise<void> => {
 
 const killProcess = async (): Promise<void> => {
   try {
-    const closeEmit = new Promise((resolve) => server.on('close', () => resolve('close')));
+    const closeEmit = new Promise((resolve, reject) => {
+      server.on('exit', (code, signal) => resolve(`exit: code:${code}, signal:${signal}`));
+      server.on('error', (err) => reject(`error: ${err}`));
+    });
 
-    server.kill('SIGTERM', { forceKillAfterTimeout: 2000 });
+    server.kill('SIGTERM', { forceKillAfterTimeout: 10000 });
 
     const result = await Promise.race([
       closeEmit,
-      new Promise((resolve) => setTimeout(() => resolve('timout'), 3000)),
+      new Promise((resolve) => setTimeout(() => resolve('timout'), 15000)),
     ]);
     debug(`close result: ${result}`);
   } catch (e) {
-    debug(`Could not stop ${engineOptions.engine}, killing system wide`);
+    debug(`Could not stop ${engineOptions.engine},error: ${e} killing system wide`);
   }
 };
 
