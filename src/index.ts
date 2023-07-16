@@ -19,4 +19,4 @@ const globalSetup = async () => {
 
 const globalTeardown = stopEngine;
 
-export { globalSetup, globalTeardown, EngineType, EngineOptions };
+export { globalSetup, globalTeardown, startEngine, stopEngine, EngineType, EngineOptions };
