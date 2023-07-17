@@ -9,7 +9,7 @@ on:
 jobs:
   build:
     strategy:
-      ail-fast: false
+      fail-fast: false
       matrix:
         os: [macos-latest, ubuntu-latest]
         node-version: [16.x, 18.x]
