@@ -1,10 +1,6 @@
 import execa from 'execa';
-import { ConfiguredOptions, EngineType } from './engine';
+import { ConfiguredOptions } from './engine';
 import { debug } from './debug';
-import { isFileExists } from './utils';
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import download from 'download-tarball';
 
 export const startZinc = ({
   binaryFilepath,
@@ -16,7 +12,7 @@ export const startZinc = ({
   ConfiguredOptions,
   'binaryFilepath' | 'engine' | 'port' | 'zincAdmin' | 'zincPassword'
 >) => {
-  return execa(`${binaryFilepath}/${engine}`, {
+  const zincserver = execa(`${binaryFilepath}/${engine}`, {
     all: true,
     env: {
       ZINC_SERVER_PORT: `${port}`,
@@ -26,15 +22,8 @@ export const startZinc = ({
       ZINC_DATA_PATH: `${binaryFilepath}/data`,
     },
   });
-};
-
-export const downloadZinc = async (url: string, binaryFilepath: string) => {
-  debug(`checking if binary exists: ${binaryFilepath}`);
-  if (!(await isFileExists(binaryFilepath))) {
-    debug(`downloading binary, url: ${url}, path: ${binaryFilepath}`);
-    await download({ url, dir: binaryFilepath });
-    debug(`Downloaded ${EngineType.ZINCSEARCH}`);
-  } else {
-    debug(`${EngineType.ZINCSEARCH} already downloaded`);
-  }
+  zincserver.on('error', (error) => {
+    debug(`Error starting ${engine}: ${error})}`);
+  });
+  return zincserver;
 };

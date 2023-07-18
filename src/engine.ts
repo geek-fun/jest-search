@@ -1,13 +1,11 @@
 import execa from 'execa';
-import { getError, isFileExists, platform, waitForLocalhost } from './utils';
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import download from 'download-tarball';
+import { download, getError, platform, waitForLocalhost } from './utils';
+
 import { execSync } from 'child_process';
 import path from 'path';
 import { debug } from './debug';
 import { ARTIFACTS, DISABLE_PROXY } from './constants';
-import { downloadZinc, startZinc } from './zinc';
+import { startZinc } from './zinc';
 
 export enum EngineType {
   ZINCSEARCH = 'zincsearch',
@@ -50,23 +48,10 @@ const getEngineResourceURL = async (engine: EngineType, version: string) => {
 };
 const prepareEngine = async (engine: EngineType, version: string, binaryLocation: string) => {
   const url = await getEngineResourceURL(engine, version);
-  const binaryFilepath = `${binaryLocation}/${engine}-${version}`;
-  if (engine === EngineType.ZINCSEARCH) {
-    await downloadZinc(url, binaryFilepath);
-    return binaryFilepath;
-  }
 
-  debug(`checking if binary exists: ${binaryFilepath}`);
-  if (!(await isFileExists(binaryFilepath))) {
-    debug(`downloading binary, url: ${url}, path: ${binaryFilepath}`);
-    await download({ url, dir: binaryLocation });
-    debug(`Downloaded ${engine}`);
-  } else {
-    debug(`${engine} already downloaded`);
-  }
-
-  return binaryFilepath;
+  return await download(url, binaryLocation, engine, version);
 };
+
 const createIndexes = async () => {
   const { indexes, port, engine } = engineOptions;
 

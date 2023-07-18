@@ -1,6 +1,7 @@
 # jest-search
 [![Node.js CI](https://github.com/geek-fun/jest-search/actions/workflows/node.yml/badge.svg)](https://github.com/geek-fun/jest-search/actions/workflows/node.yml)
 [![.github/workflows/release.yml](https://github.com/geek-fun/jest-search/actions/workflows/release.yml/badge.svg)](https://github.com/geek-fun/jest-search/actions/workflows/release.yml)
+[![Known Vulnerabilities](https://snyk.io/test/github/geek-fun/jest-search/badge.svg)](https://snyk.io/test/github/geek-fun/jest-search)
 [![codecov](https://codecov.io/gh/geek-fun/jest-search/branch/master/graph/badge.svg?token=KYTVHHKCI5)](https://codecov.io/gh/geek-fun/jest-search)
 [![npm version](https://badge.fury.io/js/@geek-fun%2Fjest-search.svg)](https://badge.fury.io/js/@geek-fun%2Fjest-search)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)

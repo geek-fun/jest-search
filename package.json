@@ -42,13 +42,18 @@
   },
   "dependencies": {
     "debug": "^4.3.4",
-    "download-tarball": "^2.0.0",
-    "execa": "^5.1.1"
+    "execa": "^5.1.1",
+    "gunzip-maybe": "^1.4.2",
+    "node-fetch": "^2.6.12",
+    "tar-fs": "^3.0.4"
   },
   "devDependencies": {
     "@types/debug": "^4.1.8",
+    "@types/gunzip-maybe": "^1.4.0",
     "@types/jest": "^29.5.2",
     "@types/node": "^20.4.1",
+    "@types/node-fetch": "^2.6.4",
+    "@types/tar-fs": "^2.0.1",
     "@types/uuid": "^9.0.2",
     "@typescript-eslint/eslint-plugin": "^5.61.0",
     "@typescript-eslint/parser": "^5.61.0",

@@ -5,6 +5,10 @@ import { execSync } from 'child_process';
 import { debug } from './debug';
 import { DISABLE_PROXY } from './constants';
 import { EngineType } from './engine';
+import { extract } from 'tar-fs';
+import gunzipMaybe from 'gunzip-maybe';
+import fetch from 'node-fetch';
+import { pipeline } from 'stream';
 
 export const waitForLocalhost = async (engine: EngineType, port: number, retries = 60) => {
   debug(`checking the local engine startup: ${retries}`);
@@ -53,6 +57,31 @@ type ESError = {
   reason: string;
   type: string;
 };
+
 export const getError = (esResponse: Buffer): ESError | undefined => {
   return JSON.parse(esResponse.toString()).error;
+};
+
+export const download = async (url: string, dir: string, engine: EngineType, version: string) => {
+  const binaryPath = `${dir}/${engine}-${version}`;
+  debug(`checking if binary exists: ${binaryPath}`);
+  if (await isFileExists(`${binaryPath}`)) {
+    debug(`binary already downloaded: ${binaryPath}`);
+
+    return binaryPath;
+  }
+
+  debug(`downloading binary, url: ${url}, path: ${binaryPath}`);
+  const res = await fetch(url);
+  await new Promise((resolve, reject) =>
+    pipeline(
+      res.body,
+      gunzipMaybe(),
+      extract(engine === EngineType.ZINCSEARCH ? `${binaryPath}` : `${dir}`),
+      (err) => (err ? reject(err) : resolve(''))
+    )
+  );
+  debug(`Downloaded ${binaryPath}`);
+
+  return binaryPath;
 };
