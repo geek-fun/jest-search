@@ -92,6 +92,10 @@ const start = async () => {
       { all: true }
     );
   }
+  server.on('error', (err) => {
+    debug(`failed to start engine emit error: ${JSON.stringify(err)}`);
+    throw new Error('failed to start engine emit error');
+  });
 
   await waitForLocalhost(engine, port);
   debug(`${engine} is running on port: ${port}, pid: ${server.pid}`);
