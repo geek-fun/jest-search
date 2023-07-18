@@ -1,4 +1,5 @@
-import { startEngine, stopEngine, EngineType, EngineOptions } from './engine';
+import { EngineOptions, startEngine, stopEngine } from './engine';
+import { EngineType } from './constants';
 import path from 'path';
 import { debug } from './debug';
 import * as fs from 'fs';

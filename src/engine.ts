@@ -1,17 +1,11 @@
 import execa from 'execa';
 import { download, getError, platform, waitForLocalhost } from './utils';
-
 import { execSync } from 'child_process';
 import path from 'path';
 import { debug } from './debug';
-import { ARTIFACTS, DISABLE_PROXY } from './constants';
+import { Artifacts, DISABLE_PROXY, EngineType } from './constants';
 import { startZinc } from './zinc';
 
-export enum EngineType {
-  ZINCSEARCH = 'zincsearch',
-  ELASTICSEARCH = 'elasticsearch',
-  OPENSEARCH = 'opensearch',
-}
 type IndexBody = { name: string; body?: unknown; mappings?: unknown };
 export type EngineOptions = {
   engine: EngineType;
@@ -36,12 +30,12 @@ const getEngineResourceURL = async (engine: EngineType, version: string) => {
   } = {
     [EngineType.ELASTICSEARCH]: () =>
       parseInt(version.charAt(0)) >= 7
-        ? `${ARTIFACTS.ES}-${version}-${sysName}-${arch}.tar.gz`
-        : `${ARTIFACTS.ES}-${version}.tar.gz`,
+        ? `${Artifacts.ES}-${version}-${sysName}-${arch}.tar.gz`
+        : `${Artifacts.ES}-${version}.tar.gz`,
     [EngineType.OPENSEARCH]: () =>
-      `${ARTIFACTS.OS}/${version}/opensearch-${version}-linux-${arch.replace('86_', '')}.tar.gz`,
+      `${Artifacts.OS}/${version}/opensearch-${version}-linux-${arch.replace('86_', '')}.tar.gz`,
     [EngineType.ZINCSEARCH]: () =>
-      `${ARTIFACTS.ZINC}/v${version}/zincsearch_${version}_${sysName}_${arch}.tar.gz`,
+      `${Artifacts.ZINC}/v${version}/zincsearch_${version}_${sysName}_${arch}.tar.gz`,
   };
 
   return engines[engine]();

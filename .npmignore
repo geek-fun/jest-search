@@ -10,3 +10,8 @@ src/
 tests/
 
 /geek-fun-jest-search-*.tgz
+
+# Ignore all .d.ts files except index.d.ts
+*.d.ts
+!index.d.ts
+.DS_Store
