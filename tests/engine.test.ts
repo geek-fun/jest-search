@@ -1,4 +1,4 @@
-import { EngineType, startEngine, stopEngine } from '../src/engine';
+import { startEngine, stopEngine, EngineType } from '../src';
 import { execSync } from 'child_process';
 import { DISABLE_PROXY } from '../src/constants';
 import { v4 as uuid } from 'uuid';
@@ -83,7 +83,7 @@ const engineMartix = [
   },
 ];
 
-describe(`unit test for default config`, () => {
+describe('integration test for jest-search', () => {
   it(`should start engine with default config`, async () => {
     await startEngine();
     const response = await execSync('curl -s "http://localhost:9200/?pretty"', {
@@ -108,7 +108,7 @@ describe(`unit test for default config`, () => {
     });
   });
 
-  it('should start engine and create index when passing indexes', async () => {
+  it('should start engine and create indexes when only passing indexes', async () => {
     await startEngine({ indexes: [indexes[0]] });
 
     const response = await execSync(
@@ -124,14 +124,12 @@ describe(`unit test for default config`, () => {
       },
     });
   });
-});
 
-engineMartix.forEach((engineConfig) => {
-  const { engine, version, indexes, port, clusterName, nodeName, zincAdmin, zincPassword } =
-    engineConfig;
+  engineMartix.forEach((engineConfig) => {
+    const { engine, version, indexes, port, clusterName, nodeName, zincAdmin, zincPassword } =
+      engineConfig;
 
-  describe(`unit test for ${engine}-${version}:${port}`, () => {
-    it(`should start ${engine}-${version} and create index`, async () => {
+    it(`should start ${engine}-${version}:${port} and create index`, async () => {
       await startEngine({ engine, version, port, clusterName, nodeName, indexes });
 
       const inspect = await execSync(
