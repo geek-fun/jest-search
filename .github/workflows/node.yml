@@ -6,6 +6,10 @@ on:
   pull_request:
     branches:  [master]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     strategy:
@@ -16,6 +20,7 @@ jobs:
         java-version: [ '17' ]
 
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
 
     steps:
       - uses: actions/checkout@v3
