@@ -65,7 +65,7 @@ export const download = async (url: string, dir: string, engine: EngineType, ver
   const binaryPath = `${dir}/${engine}-${version}`;
   debug(`checking if binary exists: ${binaryPath}`);
   if (await isFileExists(`${binaryPath}`)) {
-    debug(`binary already downloaded: ${binaryPath}`);
+    debug(`binary already downloaded`);
 
     return binaryPath;
   }
