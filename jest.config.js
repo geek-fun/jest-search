@@ -5,3 +5,6 @@ module.exports = {
   testTimeout: 10 * 60 * 1000,
   testPathIgnorePatterns: ['/node_modules/', '/dist/'],
 };
+
+process.env.ES_JAVA_OPTS = '-Xms750m -Xmx750m';
+process.env.DEBUG = 'jest-search';

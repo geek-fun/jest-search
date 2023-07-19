@@ -11,8 +11,9 @@
     "build": "tsc --build",
     "lint:fix": "eslint --fix ./",
     "lint:check": "eslint ./",
-    "test": "DEBUG='jest-search' jest --runInBand --coverage --coverageReporters json-summary text html lcov",
-    "test:ci": "DEBUG='jest-search' jest --runInBand --coverage --coverageReporters json-summary text html lcov"
+    "test": "jest --runInBand --coverage --coverageReporters json-summary text html lcov",
+    "test:debug": "DEBUG='jest-search' jest --runInBand --coverage --coverageReporters json-summary text html lcov",
+    "test:ci": "jest --runInBand --ci --coverage --coverageReporters json-summary text html lcov"
   },
   "repository": {
     "type": "git",
