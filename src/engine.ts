@@ -97,7 +97,13 @@ const start = async () => {
     throw new Error('failed to start engine emit error');
   });
 
-  await waitForLocalhost(engine, port);
+  try {
+    await waitForLocalhost(engine, port);
+  } catch (error) {
+    await killProcess();
+    throw error;
+  }
+
   debug(`${engine} is running on port: ${port}, pid: ${server.pid}`);
   await createIndexes();
 
@@ -106,8 +112,8 @@ const start = async () => {
 
 const cleanupIndices = async (): Promise<void> => {
   const { engine, port, indexes, zincAdmin, zincPassword } = engineOptions;
-  if (indexes.length <= 0) return;
   debug(' deleting indexes');
+  if (indexes.length <= 0) return;
   const result = execSync(
     engine === EngineType.ZINCSEARCH
       ? `curl -s -X DELETE http://localhost:${port}/api/index/* -u ${zincAdmin}:${zincPassword}`
