@@ -10,7 +10,7 @@ import fetch from 'node-fetch';
 import { pipeline } from 'stream';
 
 export const waitForLocalhost = async (engine: EngineType, port: number, retries = 60) => {
-  debug(`checking the local engine startup: ${retries}`);
+  debug(`checking the local ${engine}:${port} startup: ${retries}`);
   await new Promise((resolve) => setTimeout(() => resolve(0), 2000));
   if (retries <= 0) {
     throw new Error('failed start search engine');
@@ -29,7 +29,7 @@ export const waitForLocalhost = async (engine: EngineType, port: number, retries
   if (statusCode !== 200) {
     await waitForLocalhost(engine, port, retries - 1);
   } else {
-    debug('engine started');
+    debug(`engine ${engine}:${port} started`);
   }
 };
 
