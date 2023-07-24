@@ -13,6 +13,9 @@ Jest preset for running tests with local ElasticSearch, OpenSearch and ZincSearc
 
 ElasticSearch and OpenSearch relies on Java, please make sure you have Java installed and `JAVA_HOME` is set.
 
+`jest-search` provide two ways to set up, one is two set up globally, another is running in specific test only
+
+###  set up globally
 **1. install library** 
 
 ```bash
@@ -138,8 +141,29 @@ beforeAll(async () => {
   await saveBook(mockBook);
 });
 ```
+### specific test only
+the step 1 and 2 are the same as above, `jest-search` export two methods `startEngine` and `stopEngine` to start and stop the search engine, you can manually call them in your test file, the `startEngine` accepts same argument object as defined in `jest-search-config.js` file
+```typescript
+import { startEngine, stopEngine } from '@geek-fun/jest-search';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import loadConfig from '../jest-search-config.js';
 
 
+describe('integration test for elasticsearch', () => {
+  beforeAll(async () => {
+    await startEngine(loadConfig());
+    await saveBook(mockBook);
+  });
+  afterAll(async () => {
+    await stopEngine();
+  });
+  it('should get book when search with valid book name', async () => {
+    // ...
+  });
+});
+
+```
 
 ### Known issues
 
