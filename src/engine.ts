@@ -1,12 +1,13 @@
 import execa from 'execa';
-import { download, getError, platform, waitForLocalhost } from './utils';
+import { download, getEngineBinaryURL, waitForLocalhost } from './utils';
 import { execSync } from 'child_process';
 import path from 'path';
 import { debug } from './debug';
-import { Artifacts, DISABLE_PROXY, EngineType } from './constants';
+import { EngineType } from './constants';
 import { startZinc } from './zinc';
+import { createClient, EngineClient } from './engineClient';
 
-type IndexBody = { name: string; body?: unknown; mappings?: unknown };
+export type IndexBody = { name: string; body?: unknown; mappings?: unknown };
 export type EngineOptions = {
   engine: EngineType;
   version: string;
@@ -22,53 +23,17 @@ export type ConfiguredOptions = Omit<EngineOptions, 'binaryLocation'> & { binary
 
 let server: execa.ExecaChildProcess;
 let engineOptions: ConfiguredOptions;
+let engineClient: EngineClient;
 
-const getEngineResourceURL = async (engine: EngineType, version: string) => {
-  const { sysName, arch } = await platform();
-  const engines: {
-    [engineType: string]: () => string;
-  } = {
-    [EngineType.ELASTICSEARCH]: () =>
-      parseInt(version.charAt(0)) >= 7
-        ? `${Artifacts.ES}-${version}-${sysName}-${arch}.tar.gz`
-        : `${Artifacts.ES}-${version}.tar.gz`,
-    [EngineType.OPENSEARCH]: () =>
-      `${Artifacts.OS}/${version}/opensearch-${version}-linux-${arch.replace('86_', '')}.tar.gz`,
-    [EngineType.ZINCSEARCH]: () =>
-      `${Artifacts.ZINC}/v${version}/zincsearch_${version}_${sysName}_${arch}.tar.gz`,
-  };
-
-  return engines[engine]();
-};
 const prepareEngine = async (engine: EngineType, version: string, binaryLocation: string) => {
-  const url = await getEngineResourceURL(engine, version);
+  const url = await getEngineBinaryURL(engine, version);
 
   return await download(url, binaryLocation, engine, version);
 };
 
 const createIndexes = async () => {
-  const { indexes, port, engine } = engineOptions;
-
-  const curlCommands: {
-    [engineType: string]: (indexItem: IndexBody) => string;
-  } = {
-    [EngineType.ELASTICSEARCH]: ({ name, body }: IndexBody) =>
-      `curl -XPUT "http://localhost:${port}/${name}" -H "Content-Type: application/json" -d'${JSON.stringify(
-        body
-      )}'`,
-    [EngineType.OPENSEARCH]: ({ name, body }: IndexBody) =>
-      `curl -XPUT "http://localhost:${port}/${name}" -H "Content-Type: application/json" -d'${JSON.stringify(
-        body
-      )}'`,
-    [EngineType.ZINCSEARCH]: (index: IndexBody) =>
-      `curl -XPUT "http://localhost:${port}/api/index" -u ${engineOptions.zincAdmin}:${
-        engineOptions.zincPassword
-      } -H "Content-Type: application/json" -d'${JSON.stringify(index)}'`,
-  };
-  debug('creating indexes');
-  await Promise.all(
-    indexes.map(async (index) => await execSync(curlCommands[engine](index), DISABLE_PROXY))
-  );
+  const { indexes } = engineOptions;
+  await Promise.all(indexes.map(async (index) => await engineClient.createIndex(index)));
 };
 
 const start = async () => {
@@ -96,9 +61,9 @@ const start = async () => {
     debug(`failed to start engine emit error: ${JSON.stringify(err)}`);
     throw new Error('failed to start engine emit error');
   });
-
+  debug(`checking the local ${engine}:${port} startup`);
   try {
-    await waitForLocalhost(engine, port);
+    await waitForLocalhost(engineClient);
   } catch (error) {
     await killProcess();
     throw error;
@@ -111,43 +76,24 @@ const start = async () => {
 };
 
 const cleanupIndices = async (): Promise<void> => {
-  const { engine, port, indexes, zincAdmin, zincPassword } = engineOptions;
+  const { indexes } = engineOptions;
   debug(' deleting indexes');
-  if (indexes.length <= 0) return;
-  const result = execSync(
-    engine === EngineType.ZINCSEARCH
-      ? `curl -s -X DELETE http://localhost:${port}/api/index/* -u ${zincAdmin}:${zincPassword}`
-      : `curl -s -X DELETE http://localhost:${port}/${indexes.map(({ name }) => name).join(',')}`,
-    DISABLE_PROXY
-  );
 
-  const error = getError(result);
-
-  if (error) {
-    throw new Error(`Failed to remove index: ${error.reason}`);
-  }
+  await Promise.all(indexes.map(async (index) => await engineClient.deleteIndex(index)));
 
   debug('Removed all indexes');
 };
 
 const killProcess = async (): Promise<void> => {
   try {
-    const closeEmit = new Promise((resolve, reject) => {
-      server.on('exit', (code, signal) =>
-        signal === 'SIGKILL'
-          ? reject(`killed: code:${code}, signal:${signal}`)
-          : resolve(`exit: code:${code}, signal:${signal}`)
-      );
-      server.on('error', (err) => reject(`error: ${err}`));
-    });
-
     server.kill('SIGTERM', { forceKillAfterTimeout: 10000 });
 
-    const result = await Promise.race([
-      closeEmit,
-      new Promise((resolve) => setTimeout(() => resolve('timout'), 15000)),
-    ]);
-    debug(`close result: ${result}`);
+    for (let i = 0; i < 50; i++) {
+      if (server.killed && server.exitCode !== null) {
+        return;
+      }
+      await new Promise((resolve) => setTimeout(() => resolve(0), 1000));
+    }
   } catch (e) {
     debug(`Could not stop ${engineOptions.engine},error: ${e} killing system wide`);
     execSync(`pkill -f ${engineOptions.engine}`);
@@ -178,6 +124,13 @@ export const startEngine = async ({
     zincAdmin,
     zincPassword,
   };
+  const authorization =
+    zincAdmin && zincPassword
+      ? `Basic ${Buffer.from(zincAdmin + ':' + zincPassword).toString('base64')}`
+      : undefined;
+
+  engineClient = createClient(port, engine, authorization);
+
   // start engine
   await start();
 };

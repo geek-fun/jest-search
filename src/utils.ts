@@ -1,35 +1,25 @@
 import { access, constants } from 'fs';
 import { promisify } from 'util';
 import execa from 'execa';
-import { execSync } from 'child_process';
 import { debug } from './debug';
-import { DISABLE_PROXY, EngineType } from './constants';
+import { Artifacts, EngineType } from './constants';
 import { extract } from 'tar-fs';
 import gunzipMaybe from 'gunzip-maybe';
 import fetch from 'node-fetch';
 import { pipeline } from 'stream';
+import { EngineClient } from './engineClient';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 
-export const waitForLocalhost = async (engine: EngineType, port: number, retries = 30) => {
-  debug(`checking the local ${engine}:${port} startup: ${retries}`);
+export const waitForLocalhost = async (engineClient: EngineClient, retries = 30) => {
   await new Promise((resolve) => setTimeout(() => resolve(0), 2000));
   if (retries <= 0) {
     throw new Error('failed start search engine');
   }
-
-  const response = execSync(
-    engine === EngineType.ZINCSEARCH
-      ? `curl -s -o /dev/null -i -w "%{http_code}" "http://localhost:${port}/es/" || true`
-      : `curl -s -o /dev/null -i -w "%{http_code}" "http://localhost:${port}" || true`,
-    DISABLE_PROXY
-  );
-
-  const statusCode = parseInt(response.toString('utf-8'), 10);
-  debug(`curl response: ${statusCode}`);
+  const statusCode = await engineClient.heartbeat();
+  debug(`heartbeat: ${statusCode}, retries left: ${retries}`);
 
   if (statusCode !== 200) {
-    await waitForLocalhost(engine, port, retries - 1);
-  } else {
-    debug(`engine ${engine}:${port} started`);
+    await waitForLocalhost(engineClient, retries - 1);
   }
 };
 
@@ -38,7 +28,6 @@ export const isFileExists = async (path: string): Promise<boolean> => {
 
   try {
     await fsAccessPromisified(path, constants.F_OK);
-
     return true;
   } catch (e) {
     return false;
@@ -52,15 +41,6 @@ export const platform = async () => {
   return { sysName: sysName.toLowerCase(), arch: arch.toLowerCase() };
 };
 
-type ESError = {
-  reason: string;
-  type: string;
-};
-
-export const getError = (esResponse: Buffer): ESError | undefined => {
-  return JSON.parse(esResponse.toString()).error;
-};
-
 export const download = async (url: string, dir: string, engine: EngineType, version: string) => {
   const binaryPath = `${dir}/${engine}-${version}`;
   debug(`checking if binary exists: ${binaryPath}`);
@@ -71,16 +51,53 @@ export const download = async (url: string, dir: string, engine: EngineType, ver
   }
 
   debug(`downloading binary, url: ${url}, path: ${binaryPath}`);
-  const res = await fetch(url);
+  const proxyAgent = process.env.https_proxy
+    ? new HttpsProxyAgent(process.env.https_proxy)
+    : undefined;
+
+  const res = await fetch(url, { agent: proxyAgent });
   await new Promise((resolve, reject) =>
     pipeline(
       res.body,
       gunzipMaybe(),
       extract(engine === EngineType.ZINCSEARCH ? `${binaryPath}` : `${dir}`),
-      (err) => (err ? reject(err) : resolve(''))
+      (err) => {
+        debug(`error when streaming the binary file: ${err}`);
+        return err ? reject(err) : resolve('');
+      }
     )
   );
-  debug(`Downloaded ${binaryPath}`);
 
-  return binaryPath;
+  for (let i = 0; i < 5; i++) {
+    const binaryFile =
+      (await isFileExists(`${binaryPath}/bin/${engine}`)) ||
+      (await isFileExists(`${binaryPath}/${engine}`));
+
+    await new Promise((resolve) => setTimeout(() => resolve(0), 2000));
+    if (binaryFile) {
+      debug(`Downloaded ${binaryPath}`);
+      return binaryPath;
+    }
+  }
+  throw new Error(
+    `failed to download binary, please delete the folder ${binaryPath} and try again`
+  );
+};
+
+export const getEngineBinaryURL = async (engine: EngineType, version: string) => {
+  const { sysName, arch } = await platform();
+  const engines: {
+    [engineType: string]: () => string;
+  } = {
+    [EngineType.ELASTICSEARCH]: () =>
+      parseInt(version.charAt(0)) >= 7
+        ? `${Artifacts.ES}-${version}-${sysName}-${arch}.tar.gz`
+        : `${Artifacts.ES}-${version}.tar.gz`,
+    [EngineType.OPENSEARCH]: () =>
+      `${Artifacts.OS}/${version}/opensearch-${version}-linux-${arch.replace('86_', '')}.tar.gz`,
+    [EngineType.ZINCSEARCH]: () =>
+      `${Artifacts.ZINC}/v${version}/zincsearch_${version}_${sysName}_${arch}.tar.gz`,
+  };
+
+  return engines[engine]();
 };
