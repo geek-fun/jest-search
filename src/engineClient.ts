@@ -23,9 +23,9 @@ export const createClient = (
     return { status: res.status, data };
   };
 
-  const post = async <T>(path: string, body?: unknown): Promise<{ status: number; data: T }> => {
+  const put = async <T>(path: string, body?: unknown): Promise<{ status: number; data: T }> => {
     const res = await fetch(`${host}:${port}${path}`, {
-      method: 'POST',
+      method: 'PUT',
       headers,
       body: JSON.stringify(body),
     });
@@ -48,12 +48,14 @@ export const createClient = (
   };
   const createIndex = async ({ name, body, mappings }: IndexBody) => {
     debug(`creating index: ${name}`);
-    const { status, data } = await post(
+    const { status, data } = await put(
       engine === EngineType.ZINCSEARCH ? '/api/index' : `/${name}`,
       engine === EngineType.ZINCSEARCH ? { name, mappings } : body
     );
     if (status !== 200) {
-      throw new Error(`failed to create index: ${name}, status: ${status}, data: ${data}`);
+      throw new Error(
+        `failed to create index: ${name}, status: ${status}, data: ${JSON.stringify(data)}`
+      );
     }
   };
   const deleteIndex = async ({ name }: IndexBody) => {
@@ -62,7 +64,9 @@ export const createClient = (
       engine === EngineType.ZINCSEARCH ? `/api/index/${name}` : `/${name}`
     );
     if (status !== 200) {
-      throw new Error(`failed to delete index: ${name}, status: ${status}, response: ${data}`);
+      throw new Error(
+        `failed to delete index: ${name}, status: ${status}, response: ${JSON.stringify(data)}`
+      );
     }
   };
   return { heartbeat, createIndex, deleteIndex };

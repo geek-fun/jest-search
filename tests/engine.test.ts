@@ -47,10 +47,10 @@ describe('integration test for elasticsearch and opensearch', () => {
       expect(inspect).toMatchObject({
         status: 200,
         name: nodeName,
-        cluster_name: clusterName,
+        clusterName,
         version,
       });
-      expect(mapping).toEqual({ books: { status: 200, mappings: indexes[0].body.mappings } });
+      expect(mapping).toEqual({ books: { mappings: indexes[0].body.mappings }, status: 200 });
     });
   });
 });

@@ -47,5 +47,5 @@ export const fetchMapping = async (
   );
   const data = await response.json();
 
-  return { status: response.status, mapping: data };
+  return { status: response.status, ...data };
 };
