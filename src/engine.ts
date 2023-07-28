@@ -26,7 +26,7 @@ let engineOptions: ConfiguredOptions;
 let engineClient: EngineClient;
 
 const prepareEngine = async (engine: EngineType, version: string, binaryLocation: string) => {
-  const url = await getEngineBinaryURL(engine, version);
+  const url = getEngineBinaryURL(engine, version);
 
   return await download(url, binaryLocation, engine, version);
 };

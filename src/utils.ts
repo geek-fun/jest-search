@@ -1,6 +1,5 @@
 import { access, constants } from 'fs';
 import { promisify } from 'util';
-import execa from 'execa';
 import { debug } from './debug';
 import { Artifacts, EngineType } from './constants';
 import { extract } from 'tar-fs';
@@ -9,6 +8,7 @@ import fetch from 'node-fetch';
 import { pipeline } from 'stream';
 import { EngineClient } from './engineClient';
 import { HttpsProxyAgent } from 'https-proxy-agent';
+import * as os from 'os';
 
 export const waitForLocalhost = async (engineClient: EngineClient, retries = 30) => {
   await new Promise((resolve) => setTimeout(() => resolve(0), 2000));
@@ -34,9 +34,9 @@ export const isFileExists = async (path: string): Promise<boolean> => {
   }
 };
 
-export const platform = async () => {
-  const { stdout: sysName } = await execa('uname', ['-s']);
-  const { stdout: arch } = await execa('uname', ['-m']);
+const platform = () => {
+  const arch = os.arch().toString();
+  const sysName = os.platform().toString();
   debug(`checking platform uname: ${sysName} ${arch}`);
   return { sysName: sysName.toLowerCase(), arch: arch.toLowerCase() };
 };
@@ -84,19 +84,24 @@ export const download = async (url: string, dir: string, engine: EngineType, ver
   );
 };
 
-export const getEngineBinaryURL = async (engine: EngineType, version: string) => {
-  const { sysName, arch } = await platform();
+export const getEngineBinaryURL = (engine: EngineType, version: string) => {
+  const { sysName, arch } = platform();
   const engines: {
     [engineType: string]: () => string;
   } = {
-    [EngineType.ELASTICSEARCH]: () =>
-      parseInt(version.charAt(0)) >= 7
-        ? `${Artifacts.ES}-${version}-${sysName}-${arch}.tar.gz`
-        : `${Artifacts.ES}-${version}.tar.gz`,
+    [EngineType.ELASTICSEARCH]: () => {
+      const archName = arch === 'arm64' ? 'aarch64' : 'x86_64';
+      return parseInt(version.charAt(0)) >= 7
+        ? `${Artifacts.ES}-${version}-${sysName}-${archName}.tar.gz`
+        : `${Artifacts.ES}-${version}.tar.gz`;
+    },
     [EngineType.OPENSEARCH]: () =>
-      `${Artifacts.OS}/${version}/opensearch-${version}-linux-${arch.replace('86_', '')}.tar.gz`,
-    [EngineType.ZINCSEARCH]: () =>
-      `${Artifacts.ZINC}/v${version}/zincsearch_${version}_${sysName}_${arch}.tar.gz`,
+      `${Artifacts.OS}/${version}/opensearch-${version}-linux-${arch}.tar.gz`,
+
+    [EngineType.ZINCSEARCH]: () => {
+      const archName = arch === 'x64' ? 'x86_64' : arch;
+      return `${Artifacts.ZINC}/v${version}/zincsearch_${version}_${sysName}_${archName}.tar.gz`;
+    },
   };
 
   return engines[engine]();
