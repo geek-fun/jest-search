@@ -1,6 +1,6 @@
 import { EngineType, startEngine, stopEngine } from '../src';
-import { engineMartix, indexes } from './unitls/fixtures';
-import { diagnose, fetchMapping } from './unitls/common';
+import { engineMartix, indexes } from './utils/fixtures';
+import { diagnose, fetchMapping } from './utils/common';
 
 describe('integration test for elasticsearch and opensearch', () => {
   it(`should start engine with default config`, async () => {

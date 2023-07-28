@@ -1,5 +1,5 @@
 import { EngineType, startEngine, stopEngine } from '../src';
-import { diagnose, fetchMapping } from './unitls/common';
+import { diagnose, fetchMapping } from './utils/common';
 
 const { engine, clusterName, nodeName, indexes, version, port, zincAdmin, zincPassword } = {
   engine: EngineType.ZINCSEARCH,
