@@ -47,7 +47,7 @@
     "execa": "^5.1.1",
     "gunzip-maybe": "^1.4.2",
     "https-proxy-agent": "^7.0.1",
-    "node-fetch": "^2.6.12",
+    "node-fetch": "^2.6.13",
     "tar-fs": "^3.0.4"
   },
   "devDependencies": {
