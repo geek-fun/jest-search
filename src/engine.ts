@@ -54,7 +54,7 @@ const start = async () => {
           ? `-Eplugins.security.disabled=true`
           : `-Expack.security.enabled=false`,
       ],
-      { all: true }
+      { all: true },
     );
   }
   server.on('error', (err) => {
