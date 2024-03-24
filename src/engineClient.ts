@@ -13,7 +13,7 @@ const host = 'http://localhost';
 export const createClient = (
   port: number,
   engine: EngineType,
-  authorization = ''
+  authorization = '',
 ): EngineClient => {
   const headers = { 'Content-Type': 'application/json', authorization };
   const get = async <T>(path: string): Promise<{ status: number; data: T }> => {
@@ -50,22 +50,22 @@ export const createClient = (
     debug(`creating index: ${name}`);
     const { status, data } = await put(
       engine === EngineType.ZINCSEARCH ? '/api/index' : `/${name}`,
-      engine === EngineType.ZINCSEARCH ? { name, mappings } : body
+      engine === EngineType.ZINCSEARCH ? { name, mappings } : body,
     );
     if (status !== 200) {
       throw new Error(
-        `failed to create index: ${name}, status: ${status}, data: ${JSON.stringify(data)}`
+        `failed to create index: ${name}, status: ${status}, data: ${JSON.stringify(data)}`,
       );
     }
   };
   const deleteIndex = async ({ name }: IndexBody) => {
     debug(`deleting index: ${name}`);
     const { status, data } = await del(
-      engine === EngineType.ZINCSEARCH ? `/api/index/${name}` : `/${name}`
+      engine === EngineType.ZINCSEARCH ? `/api/index/${name}` : `/${name}`,
     );
     if (status !== 200) {
       throw new Error(
-        `failed to delete index: ${name}, status: ${status}, response: ${JSON.stringify(data)}`
+        `failed to delete index: ${name}, status: ${status}, response: ${JSON.stringify(data)}`,
       );
     }
   };
