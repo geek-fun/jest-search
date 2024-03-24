@@ -139,5 +139,5 @@ export const stopEngine = async (): Promise<void> => {
   await cleanupIndices();
   await killProcess();
 
-  debug('ES has been stopped');
+  debug('Engine has been stopped');
 };

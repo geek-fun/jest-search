@@ -1,14 +1,15 @@
+import * as fs from 'fs';
 import { access, constants } from 'fs';
 import { promisify } from 'util';
 import { debug } from './debug';
 import { Artifacts, EngineType } from './constants';
-import { extract } from 'tar-fs';
-import gunzipMaybe from 'gunzip-maybe';
 import fetch from 'node-fetch';
-import { pipeline } from 'stream';
 import { EngineClient } from './engineClient';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import * as os from 'os';
+import * as zlib from 'zlib';
+import { extract } from 'tar-fs';
+import { pipeline } from 'node:stream';
 
 export const waitForLocalhost = async (engineClient: EngineClient, retries = 30) => {
   await new Promise((resolve) => setTimeout(() => resolve(0), 2000));
@@ -41,32 +42,51 @@ const platform = () => {
   return { sysName: sysName.toLowerCase(), arch: arch.toLowerCase() };
 };
 
+const pipelineAsync = promisify(pipeline);
+
 export const download = async (url: string, dir: string, engine: EngineType, version: string) => {
   const binaryPath = `${dir}/${engine}-${version}`;
+  const writePath = engine === EngineType.ZINCSEARCH ? `${binaryPath}` : `${dir}`;
   debug(`checking if binary exists: ${binaryPath}`);
   if (await isFileExists(`${binaryPath}`)) {
     debug(`binary already downloaded`);
 
     return binaryPath;
+  } else {
+    fs.mkdirSync(dir, { recursive: true, mode: 0o775 });
   }
 
   debug(`downloading binary, url: ${url}, path: ${binaryPath}`);
   const proxyAgent = process.env.https_proxy
     ? new HttpsProxyAgent(process.env.https_proxy)
     : undefined;
+  try {
+    const res = await fetch(url, { agent: proxyAgent });
 
-  const res = await fetch(url, { agent: proxyAgent });
-  await new Promise((resolve, reject) =>
-    pipeline(
+    const contentType = res.headers.get('content-type') || '';
+    debug(`content-type: ${contentType}`);
+    let decompressStream;
+    if (
+      ['application/gzip', 'application/x-gzip', 'application/octet-stream'].includes(contentType)
+    ) {
+      decompressStream = zlib.createGunzip();
+    } else if (contentType === 'application/zip') {
+      decompressStream = zlib.createUnzip();
+    } else {
+      debug(`Unsupported content type: ${contentType}`);
+      process.exit(-1);
+    }
+
+    // Pipe the response body to the decompression stream and then to the extract function
+    await pipelineAsync(
       res.body,
-      gunzipMaybe(),
-      extract(engine === EngineType.ZINCSEARCH ? `${binaryPath}` : `${dir}`),
-      (err) => {
-        debug(`error when streaming the binary file: ${err}`);
-        return err ? reject(err) : resolve('');
-      }
-    )
-  );
+      decompressStream,
+      extract(writePath, { dmode: 0o775, fmode: 0o775 }),
+    );
+  } catch (err) {
+    debug(`error when downloading and extracting the binary file: ${err}`);
+    process.exit(-1);
+  }
 
   for (let i = 0; i < 5; i++) {
     const binaryFile =
@@ -80,7 +100,7 @@ export const download = async (url: string, dir: string, engine: EngineType, ver
     }
   }
   throw new Error(
-    `failed to download binary, please delete the folder ${binaryPath} and try again`
+    `failed to download binary, please delete the folder ${binaryPath} and try again`,
   );
 };
 

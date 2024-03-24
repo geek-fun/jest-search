@@ -34,15 +34,9 @@ describe('integration test for zincsearch', () => {
       engine,
       port,
       zincAdmin,
-      zincPassword
+      zincPassword,
     );
-    const { status: mappingStatus, mapping } = await fetchMapping(
-      engine,
-      port,
-      indexes[0].name,
-      zincAdmin,
-      zincPassword
-    );
+    const mapping = await fetchMapping(engine, port, indexes[0].name, zincAdmin, zincPassword);
 
     await stopEngine();
 
@@ -52,8 +46,8 @@ describe('integration test for zincsearch', () => {
       clusterName,
       version: version,
     });
-    expect(mappingStatus).toEqual(200);
     expect(mapping).toEqual({
+      status: 200,
       books: {
         mappings: {
           properties: {

@@ -11,11 +11,11 @@ export const diagnose = async (
   engine: EngineType,
   port: number,
   zincAdmin?: string,
-  zincPassword?: string
+  zincPassword?: string,
 ) => {
   const response = await fetch(
     `http://localhost:${port}${engine === EngineType.ZINCSEARCH ? '/es' : '/?pretty'}`,
-    { headers: { authorization: generateAuthorization(zincAdmin, zincPassword) } }
+    { headers: { authorization: generateAuthorization(zincAdmin, zincPassword) } },
   );
   const data = await response.json();
 
@@ -32,19 +32,18 @@ export const fetchMapping = async (
   port: number,
   indexName: string,
   zincAdmin?: string,
-  zincPassword?: string
+  zincPassword?: string,
 ) => {
-  const response = await fetch(
-    `http://localhost:${port}${
-      engine === EngineType.ZINCSEARCH ? '/api' : ''
-    }/${indexName}/_mapping`,
-    {
-      headers: {
-        'Content-Type': 'application/json',
-        authorization: generateAuthorization(zincAdmin, zincPassword),
-      },
-    }
-  );
+  const url = `http://localhost:${port}${
+    engine === EngineType.ZINCSEARCH ? '/api' : ''
+  }/${indexName}/_mapping`;
+
+  const response = await fetch(url, {
+    headers: {
+      'Content-Type': 'application/json',
+      authorization: generateAuthorization(zincAdmin, zincPassword),
+    },
+  });
   const data = await response.json();
 
   return { status: response.status, ...data };
