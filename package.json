@@ -1,6 +1,6 @@
 {
   "name": "@geek-fun/jest-search",
-  "version": "1.0.6",
+  "version": "1.1.0",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
   "description": "Jest preset for running tests with local search platform",
