@@ -45,7 +45,7 @@
   "dependencies": {
     "debug": "^4.3.4",
     "execa": "^5.1.1",
-    "https-proxy-agent": "^7.0.3",
+    "https-proxy-agent": "^7.0.4",
     "node-fetch": "^2.7.0",
     "tar-fs": "^3.0.5"
   },
