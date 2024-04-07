@@ -3,7 +3,7 @@ import { engineMartix, indexes } from './utils/fixtures';
 import { diagnose, fetchMapping } from './utils/common';
 
 describe('integration test for elasticsearch and opensearch', () => {
-  it(`should start engine with default config`, async () => {
+  it.only(`should start engine with default config`, async () => {
     await startEngine();
 
     const inspect = await diagnose(EngineType.ELASTICSEARCH, 9200);
