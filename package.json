@@ -47,9 +47,11 @@
     "execa": "^5.1.1",
     "https-proxy-agent": "^7.0.4",
     "node-fetch": "^2.7.0",
-    "tar-fs": "^3.0.5"
+    "tar-fs": "^3.0.5",
+    "yauzl": "^3.1.2"
   },
   "devDependencies": {
+    "@types/yauzl": "^2.10.3",
     "@types/debug": "^4.1.12",
     "@types/gunzip-maybe": "^1.4.2",
     "@types/jest": "^29.5.11",
