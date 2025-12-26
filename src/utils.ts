@@ -224,23 +224,19 @@ export const downloadZip = async (zipFilePath: string, extractPath: string) => {
                 debug(`error while opening read stream: ${err}`);
                 return cleanup(err);
               }
-              const filePath = path.join(extractPath, entry.fileName);
-              const normalizedPath = path.normalize(filePath);
-              const normalizedExtractPath = path.normalize(extractPath);
-
               // Security check: ensure the file path is within the extract directory
-              if (
-                !normalizedPath.startsWith(normalizedExtractPath + path.sep) &&
-                normalizedPath !== normalizedExtractPath
-              ) {
+              const resolvedExtractPath = path.resolve(extractPath);
+              const resolvedFilePath = path.resolve(extractPath, entry.fileName);
+
+              if (!resolvedFilePath.startsWith(resolvedExtractPath + path.sep)) {
                 debug(`Path traversal attempt detected: ${entry.fileName}`);
                 return cleanup(new Error(`Path traversal attempt detected: ${entry.fileName}`));
               }
 
-              const fileDir = path.dirname(filePath);
+              const fileDir = path.dirname(resolvedFilePath);
               tryRecursiveDir(fileDir);
               // On Windows, mode option is ignored but doesn't cause errors
-              const writeStream = fs.createWriteStream(filePath, { mode: 0o755 });
+              const writeStream = fs.createWriteStream(resolvedFilePath, { mode: 0o755 });
 
               writeStream.on('error', (err) => {
                 debug(`error while writing file: ${err}`);

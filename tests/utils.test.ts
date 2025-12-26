@@ -241,17 +241,17 @@ describe('unit test for utils', () => {
       const zipPath = path.join(testDir, 'malicious.zip');
       const extractPath = path.join(testDir, 'extracted');
 
-      // Use JSZip to create a ZIP with path traversal
+      // Create a ZIP file containing a path traversal attempt
       const zip = new JSZip();
       zip.file('../../../etc/passwd', 'malicious content');
       const content = await zip.generateAsync({ type: 'nodebuffer' });
       fs.writeFileSync(zipPath, content);
 
-      // yauzl library rejects invalid paths during reading, which is good defense in depth
-      // Our code adds additional validation after yauzl's checks
+      // Defense in depth: Both yauzl (ZIP reading library) and our custom validation
+      // reject path traversal attempts. This test verifies that malicious ZIPs are caught.
       await expect(downloadZip(zipPath, extractPath)).rejects.toThrow();
 
-      // Verify no files were created in the extract directory with the malicious name
+      // Verify no files were created in the extract directory
       if (isFileExists(extractPath)) {
         const files = fs.readdirSync(extractPath, { recursive: true });
         expect(files).toHaveLength(0);
@@ -262,14 +262,14 @@ describe('unit test for utils', () => {
       const zipPath = path.join(testDir, 'malicious.zip');
       const extractPath = path.join(testDir, 'extracted');
 
-      // Use JSZip to create a ZIP with relative path traversal
+      // Create a ZIP file containing a relative path traversal attempt
       const zip = new JSZip();
       zip.file('../../outside.txt', 'outside content');
       const content = await zip.generateAsync({ type: 'nodebuffer' });
       fs.writeFileSync(zipPath, content);
 
-      // yauzl library rejects invalid paths during reading, which is good defense in depth
-      // Our code adds additional validation after yauzl's checks
+      // Defense in depth: Both yauzl (ZIP reading library) and our custom validation
+      // reject path traversal attempts. This test verifies that malicious ZIPs are caught.
       await expect(downloadZip(zipPath, extractPath)).rejects.toThrow();
     });
 
