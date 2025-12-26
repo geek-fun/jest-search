@@ -11,6 +11,7 @@ import * as zlib from 'zlib';
 import { extract } from 'tar-fs';
 import { pipeline } from 'node:stream';
 import * as yauzl from 'yauzl';
+import * as path from 'path';
 
 export const waitForLocalhost = async (engineClient: EngineClient, retries = 30) => {
   await new Promise((resolve) => setTimeout(() => resolve(0), 2000));
@@ -186,15 +187,26 @@ const downloadZip = async (zipFilePath: string, extractPath: string) => {
                 debug(`error while opening read stream: ${err}`);
                 return reject(err);
               }
-              const filePath = `${extractPath}/${entry.fileName}`;
-              const fileDir = filePath.substring(0, filePath.lastIndexOf('/'));
+              const filePath = path.join(extractPath, entry.fileName);
+              const fileDir = path.dirname(filePath);
               tryRecursiveDir(fileDir);
               // On Windows, mode option is ignored but doesn't cause errors
               const writeStream = fs.createWriteStream(filePath, { mode: 0o755 });
+
+              writeStream.on('error', (err) => {
+                debug(`error while writing file: ${err}`);
+                reject(err);
+              });
+
               readStream.on('end', () => {
-                writeStream.end();
                 zipfile.readEntry();
               });
+
+              readStream.on('error', (err) => {
+                debug(`error while reading stream: ${err}`);
+                reject(err);
+              });
+
               readStream.pipe(writeStream);
             });
           }
