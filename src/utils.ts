@@ -50,7 +50,7 @@ const tryRecursiveDir = (filepath: string) => {
 };
 
 const pipelineAsync = promisify(pipeline);
-const isZipFile = (filePath: string): boolean => {
+export const isZipFile = (filePath: string): boolean => {
   const buffer = Buffer.alloc(2);
   let fd: number | undefined;
   try {
@@ -184,16 +184,20 @@ export const getEngineBinaryURL = (engine: EngineType, version: string) => {
   return engines[engine]();
 };
 
-const downloadZip = async (zipFilePath: string, extractPath: string) => {
+export const downloadZip = async (zipFilePath: string, extractPath: string) => {
   try {
-    return new Promise((resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
       yauzl.open(zipFilePath, { lazyEntries: true }, (err, zipfile) => {
         if (err) {
           debug(`error while unzip: ${zipFilePath}`);
           return reject(err);
         }
 
+        let settled = false;
         const cleanup = (error?: Error) => {
+          if (settled) return;
+          settled = true;
+
           try {
             zipfile.close();
           } catch {
@@ -201,6 +205,8 @@ const downloadZip = async (zipFilePath: string, extractPath: string) => {
           }
           if (error) {
             reject(error);
+          } else {
+            resolve();
           }
         };
 
@@ -218,11 +224,19 @@ const downloadZip = async (zipFilePath: string, extractPath: string) => {
                 debug(`error while opening read stream: ${err}`);
                 return cleanup(err);
               }
-              const filePath = path.join(extractPath, entry.fileName);
-              const fileDir = path.dirname(filePath);
+              // Security check: ensure the file path is within the extract directory
+              const resolvedExtractPath = path.resolve(extractPath);
+              const resolvedFilePath = path.resolve(extractPath, entry.fileName);
+
+              if (!resolvedFilePath.startsWith(resolvedExtractPath + path.sep)) {
+                debug(`Path traversal attempt detected: ${entry.fileName}`);
+                return cleanup(new Error(`Path traversal attempt detected: ${entry.fileName}`));
+              }
+
+              const fileDir = path.dirname(resolvedFilePath);
               tryRecursiveDir(fileDir);
               // On Windows, mode option is ignored but doesn't cause errors
-              const writeStream = fs.createWriteStream(filePath, { mode: 0o755 });
+              const writeStream = fs.createWriteStream(resolvedFilePath, { mode: 0o755 });
 
               writeStream.on('error', (err) => {
                 debug(`error while writing file: ${err}`);
@@ -242,7 +256,7 @@ const downloadZip = async (zipFilePath: string, extractPath: string) => {
             });
           }
         });
-        zipfile.on('close', resolve);
+        zipfile.on('close', () => cleanup());
         zipfile.on('error', (err) => {
           cleanup(err);
         });
