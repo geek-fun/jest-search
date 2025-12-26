@@ -43,7 +43,8 @@ const platform = () => {
 
 const tryRecursiveDir = (filepath: string) => {
   if (!isFileExists(filepath)) {
-    fs.mkdirSync(filepath, { recursive: true, mode: 0o775 });
+    // On Windows, file mode is ignored, but setting it doesn't cause errors
+    fs.mkdirSync(filepath, { recursive: true, mode: 0o755 });
   }
 };
 
@@ -64,9 +65,8 @@ const unGzip = async (readPath: string, writePath: string) => {
   // Pipe the response body to the decompression stream and then to the extract function
   await pipelineAsync(
     fs.createReadStream(readPath),
-    // decompressStream,
     zlib.createGunzip(),
-    extract(writePath, { dmode: 0o775, fmode: 0o775 }),
+    extract(writePath, { dmode: 0o755, fmode: 0o755 }),
   );
 };
 
@@ -97,14 +97,13 @@ export const download = async (url: string, dir: string, engine: EngineType, ver
       // Pipe the response body to the decompression stream and then to the extract function
       await pipelineAsync(
         res.body,
-        // decompressStream,
         zlib.createGunzip(),
-        extract(writePath, { dmode: 0o775, fmode: 0o775 }),
+        extract(writePath, { dmode: 0o755, fmode: 0o755 }),
       );
     } else if (contentType === 'application/zip') {
       await pipelineAsync(res.body, fs.createWriteStream(`${binaryPath}.zip`));
       if (isZipFile(`${binaryPath}.zip`)) {
-        await downloadZip(writePath);
+        await downloadZip(`${binaryPath}.zip`, writePath);
       } else {
         await unGzip(`${binaryPath}.zip`, writePath);
       }
@@ -165,7 +164,7 @@ export const getEngineBinaryURL = (engine: EngineType, version: string) => {
   return engines[engine]();
 };
 
-const downloadZip = async (zipFilePath: string) => {
+const downloadZip = async (zipFilePath: string, extractPath: string) => {
   try {
     return new Promise((resolve, reject) => {
       yauzl.open(zipFilePath, { lazyEntries: true }, (err, zipfile) => {
@@ -175,19 +174,28 @@ const downloadZip = async (zipFilePath: string) => {
         }
         zipfile.readEntry();
 
-        zipfile.on('entry', async (entry) => {
-          debug(`found entry: filePath: ${entry.filePath} fileName: ${entry.fileName}`);
+        zipfile.on('entry', (entry) => {
+          debug(`found entry: fileName: ${entry.fileName}`);
           if (/\/$/.test(entry.fileName)) {
+            // Directory entry, just read next
             zipfile.readEntry();
           } else {
+            // File entry
             zipfile.openReadStream(entry, (err, readStream) => {
               if (err) {
-                debug(`error while unzip: ${zipFilePath}`);
+                debug(`error while opening read stream: ${err}`);
                 return reject(err);
               }
-              readStream.on('end', zipfile.readEntry);
-              tryRecursiveDir(zipFilePath);
-              readStream.pipe(fs.createWriteStream(`${zipFilePath}/${entry.fileName}`));
+              const filePath = `${extractPath}/${entry.fileName}`;
+              const fileDir = filePath.substring(0, filePath.lastIndexOf('/'));
+              tryRecursiveDir(fileDir);
+              // On Windows, mode option is ignored but doesn't cause errors
+              const writeStream = fs.createWriteStream(filePath, { mode: 0o755 });
+              readStream.on('end', () => {
+                writeStream.end();
+                zipfile.readEntry();
+              });
+              readStream.pipe(writeStream);
             });
           }
         });
@@ -196,7 +204,7 @@ const downloadZip = async (zipFilePath: string) => {
       });
     });
   } catch (err) {
-    debug(`error encountered while downloaidng & extract zip file: ${zipFilePath}, err: ${err}`);
+    debug(`error encountered while downloading & extract zip file: ${zipFilePath}, err: ${err}`);
     throw err;
   }
 };
