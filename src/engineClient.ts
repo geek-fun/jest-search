@@ -18,7 +18,7 @@ export const createClient = (
   const headers = { 'Content-Type': 'application/json', authorization };
   const get = async <T>(path: string): Promise<{ status: number; data: T }> => {
     const res = await fetch(`${host}:${port}${path}`, { headers });
-    const data = await res.json() as T;
+    const data = (await res.json()) as T;
 
     return { status: res.status, data };
   };
@@ -29,7 +29,7 @@ export const createClient = (
       headers,
       body: JSON.stringify(body),
     });
-    const data = await res.json() as T;
+    const data = (await res.json()) as T;
     return { status: res.status, data };
   };
   const del = async (path: string): Promise<{ status: number; data: unknown }> => {
