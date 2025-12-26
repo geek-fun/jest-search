@@ -50,7 +50,7 @@ const tryRecursiveDir = (filepath: string) => {
 };
 
 const pipelineAsync = promisify(pipeline);
-const isZipFile = (filePath: string): boolean => {
+export const isZipFile = (filePath: string): boolean => {
   const buffer = Buffer.alloc(2);
   let fd: number | undefined;
   try {
@@ -184,7 +184,7 @@ export const getEngineBinaryURL = (engine: EngineType, version: string) => {
   return engines[engine]();
 };
 
-const downloadZip = async (zipFilePath: string, extractPath: string) => {
+export const downloadZip = async (zipFilePath: string, extractPath: string) => {
   try {
     return new Promise<void>((resolve, reject) => {
       yauzl.open(zipFilePath, { lazyEntries: true }, (err, zipfile) => {
