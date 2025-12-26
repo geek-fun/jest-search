@@ -81,6 +81,27 @@ const platforms = [
     arch: 'arm64',
     URL: 'https://github.com/zincsearch/zincsearch/releases/download/v0.4.7/zincsearch_0.4.7_linux_arm64.tar.gz',
   },
+  {
+    engine: EngineType.ELASTICSEARCH,
+    version: '8.9.0',
+    platform: 'win32',
+    arch: 'x64',
+    URL: 'https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-8.9.0-windows-x86_64.zip',
+  },
+  {
+    engine: EngineType.OPENSEARCH,
+    version: '2.9.0',
+    platform: 'win32',
+    arch: 'x64',
+    URL: 'https://artifacts.opensearch.org/releases/bundle/opensearch/2.9.0/opensearch-2.9.0-windows-x64.zip',
+  },
+  {
+    engine: EngineType.ZINCSEARCH,
+    version: '0.4.7',
+    platform: 'win32',
+    arch: 'x64',
+    URL: 'https://github.com/zincsearch/zincsearch/releases/download/v0.4.7/zincsearch_0.4.7_windows_x86_64.tar.gz',
+  },
 ];
 
 describe('unit test for utils', () => {

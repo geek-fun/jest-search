@@ -44,7 +44,7 @@ const platform = () => {
 
 const tryRecursiveDir = (filepath: string) => {
   if (!isFileExists(filepath)) {
-    // On Windows, file mode is ignored, but setting it doesn't cause errors
+    // Mode 0o755 controls directory permissions on Unix-like systems; on Windows it is ignored but does not cause errors
     fs.mkdirSync(filepath, { recursive: true, mode: 0o755 });
   }
 };
@@ -52,13 +52,22 @@ const tryRecursiveDir = (filepath: string) => {
 const pipelineAsync = promisify(pipeline);
 const isZipFile = (filePath: string): boolean => {
   const buffer = Buffer.alloc(2);
+  let fd: number | undefined;
   try {
-    fs.openSync(filePath, 'r');
-    fs.readSync(fs.openSync(filePath, 'r'), buffer, 0, 2, 0);
+    fd = fs.openSync(filePath, 'r');
+    fs.readSync(fd, buffer, 0, 2, 0);
     return buffer.toString('hex') === '504b';
   } catch (error) {
     debug(`Error checking file signature: ${error}`);
     return false;
+  } finally {
+    if (fd !== undefined) {
+      try {
+        fs.closeSync(fd);
+      } catch {
+        // ignore close errors
+      }
+    }
   }
 };
 
@@ -89,7 +98,12 @@ export const download = async (url: string, dir: string, engine: EngineType, ver
     : undefined;
   try {
     const res = await fetch(url, { agent: proxyAgent });
-    if (!res.ok) throw new Error(await res.text());
+    if (!res.ok) {
+      const bodyText = await res.text();
+      throw new Error(
+        `Request to ${url} failed with status ${res.status} ${res.statusText}: ${bodyText}`,
+      );
+    }
     const contentType = res.headers.get('content-type') || '';
     debug(`content-type: ${contentType}`);
     if (
@@ -106,7 +120,10 @@ export const download = async (url: string, dir: string, engine: EngineType, ver
       if (isZipFile(`${binaryPath}.zip`)) {
         await downloadZip(`${binaryPath}.zip`, writePath);
       } else {
-        await unGzip(`${binaryPath}.zip`, writePath);
+        // File has .zip extension but is actually gzipped, rename it
+        const gzPath = `${binaryPath}.gz`;
+        fs.renameSync(`${binaryPath}.zip`, gzPath);
+        await unGzip(gzPath, writePath);
       }
     } else {
       debug(`Unsupported content type: ${contentType}`);
@@ -148,7 +165,9 @@ export const getEngineBinaryURL = (engine: EngineType, version: string) => {
         : `${Artifacts.ES}-${version}.${zipFormat}`;
     },
     [EngineType.OPENSEARCH]: () => {
-      const systemName = sysName === 'win32' ? 'windows' : sysName;
+      // OpenSearch only provides Windows and Linux builds. For macOS (darwin) and other
+      // non-Windows platforms, use the Linux build which works on those systems.
+      const systemName = sysName === 'win32' ? 'windows' : 'linux';
       const zipFormat = systemName === 'windows' ? 'zip' : 'tar.gz';
       // https://artifacts.opensearch.org/releases/bundle/opensearch/2.13.0/opensearch-2.13.0-windows-x64.zip
       return `${Artifacts.OS}/${version}/opensearch-${version}-${systemName}-${arch}.${zipFormat}`;
@@ -173,6 +192,18 @@ const downloadZip = async (zipFilePath: string, extractPath: string) => {
           debug(`error while unzip: ${zipFilePath}`);
           return reject(err);
         }
+
+        const cleanup = (error?: Error) => {
+          try {
+            zipfile.close();
+          } catch {
+            // ignore close errors
+          }
+          if (error) {
+            reject(error);
+          }
+        };
+
         zipfile.readEntry();
 
         zipfile.on('entry', (entry) => {
@@ -185,7 +216,7 @@ const downloadZip = async (zipFilePath: string, extractPath: string) => {
             zipfile.openReadStream(entry, (err, readStream) => {
               if (err) {
                 debug(`error while opening read stream: ${err}`);
-                return reject(err);
+                return cleanup(err);
               }
               const filePath = path.join(extractPath, entry.fileName);
               const fileDir = path.dirname(filePath);
@@ -195,7 +226,7 @@ const downloadZip = async (zipFilePath: string, extractPath: string) => {
 
               writeStream.on('error', (err) => {
                 debug(`error while writing file: ${err}`);
-                reject(err);
+                cleanup(err);
               });
 
               readStream.on('end', () => {
@@ -204,7 +235,7 @@ const downloadZip = async (zipFilePath: string, extractPath: string) => {
 
               readStream.on('error', (err) => {
                 debug(`error while reading stream: ${err}`);
-                reject(err);
+                cleanup(err);
               });
 
               readStream.pipe(writeStream);
@@ -212,7 +243,9 @@ const downloadZip = async (zipFilePath: string, extractPath: string) => {
           }
         });
         zipfile.on('close', resolve);
-        zipfile.on('error', reject);
+        zipfile.on('error', (err) => {
+          cleanup(err);
+        });
       });
     });
   } catch (err) {
