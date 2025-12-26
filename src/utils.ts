@@ -78,6 +78,9 @@ export const download = async (url: string, dir: string, engine: EngineType, ver
     }
 
     // Pipe the response body to the decompression stream and then to the extract function
+    if (!res.body) {
+      throw new Error('Response body is null');
+    }
     await pipelineAsync(
       res.body,
       decompressStream,
