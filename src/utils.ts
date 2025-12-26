@@ -148,7 +148,7 @@ export const getEngineBinaryURL = (engine: EngineType, version: string) => {
         : `${Artifacts.ES}-${version}.${zipFormat}`;
     },
     [EngineType.OPENSEARCH]: () => {
-      const systemName = sysName === 'win32' ? 'windows' : sysName;
+      const systemName = sysName === 'win32' ? 'windows' : 'linux';
       const zipFormat = systemName === 'windows' ? 'zip' : 'tar.gz';
       // https://artifacts.opensearch.org/releases/bundle/opensearch/2.13.0/opensearch-2.13.0-windows-x64.zip
       return `${Artifacts.OS}/${version}/opensearch-${version}-${systemName}-${arch}.${zipFormat}`;
