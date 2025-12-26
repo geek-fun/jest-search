@@ -165,6 +165,8 @@ export const getEngineBinaryURL = (engine: EngineType, version: string) => {
         : `${Artifacts.ES}-${version}.${zipFormat}`;
     },
     [EngineType.OPENSEARCH]: () => {
+      // OpenSearch only provides Windows and Linux builds. For macOS (darwin) and other
+      // non-Windows platforms, use the Linux build which works on those systems.
       const systemName = sysName === 'win32' ? 'windows' : 'linux';
       const zipFormat = systemName === 'windows' ? 'zip' : 'tar.gz';
       // https://artifacts.opensearch.org/releases/bundle/opensearch/2.13.0/opensearch-2.13.0-windows-x64.zip
