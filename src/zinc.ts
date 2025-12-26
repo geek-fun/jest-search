@@ -1,4 +1,4 @@
-import { execa } from 'execa';
+import execa from 'execa';
 import { ConfiguredOptions } from './engine';
 import { debug } from './debug';
 
@@ -22,7 +22,7 @@ export const startZinc = ({
       ZINC_DATA_PATH: `${binaryFilepath}/data`,
     },
   });
-  zincserver.on('error', (error: Error) => {
+  zincserver.on('error', (error) => {
     debug(`Error starting ${engine}: ${error})}`);
   });
   return zincserver;

@@ -1,4 +1,4 @@
-import { execa, type ResultPromise } from 'execa';
+import execa from 'execa';
 import { download, getEngineBinaryURL, waitForLocalhost } from './utils';
 import { execSync } from 'child_process';
 import path from 'path';
@@ -21,7 +21,7 @@ export type EngineOptions = {
 };
 export type ConfiguredOptions = Omit<EngineOptions, 'binaryLocation'> & { binaryFilepath: string };
 
-let server: ResultPromise;
+let server: execa.ExecaChildProcess;
 let engineOptions: ConfiguredOptions;
 let engineClient: EngineClient;
 
@@ -54,10 +54,10 @@ const start = async () => {
           ? `-Eplugins.security.disabled=true`
           : `-Expack.security.enabled=false`,
       ],
-      { all: true, forceKillAfterDelay: 10000 },
+      { all: true },
     );
   }
-  server.on('error', (err: Error) => {
+  server.on('error', (err) => {
     debug(`failed to start engine emit error: ${JSON.stringify(err)}`);
     throw new Error('failed to start engine emit error');
   });
@@ -86,7 +86,7 @@ const cleanupIndices = async (): Promise<void> => {
 
 const killProcess = async (): Promise<void> => {
   try {
-    server.kill('SIGTERM');
+    server.kill('SIGTERM', { forceKillAfterTimeout: 10000 });
 
     for (let i = 0; i < 50; i++) {
       if (server.killed && server.exitCode !== null) {
