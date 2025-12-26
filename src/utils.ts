@@ -186,14 +186,18 @@ export const getEngineBinaryURL = (engine: EngineType, version: string) => {
 
 const downloadZip = async (zipFilePath: string, extractPath: string) => {
   try {
-    return new Promise((resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
       yauzl.open(zipFilePath, { lazyEntries: true }, (err, zipfile) => {
         if (err) {
           debug(`error while unzip: ${zipFilePath}`);
           return reject(err);
         }
 
+        let settled = false;
         const cleanup = (error?: Error) => {
+          if (settled) return;
+          settled = true;
+
           try {
             zipfile.close();
           } catch {
@@ -201,6 +205,8 @@ const downloadZip = async (zipFilePath: string, extractPath: string) => {
           }
           if (error) {
             reject(error);
+          } else {
+            resolve();
           }
         };
 
@@ -219,6 +225,18 @@ const downloadZip = async (zipFilePath: string, extractPath: string) => {
                 return cleanup(err);
               }
               const filePath = path.join(extractPath, entry.fileName);
+              const normalizedPath = path.normalize(filePath);
+              const normalizedExtractPath = path.normalize(extractPath);
+
+              // Security check: ensure the file path is within the extract directory
+              if (
+                !normalizedPath.startsWith(normalizedExtractPath + path.sep) &&
+                normalizedPath !== normalizedExtractPath
+              ) {
+                debug(`Path traversal attempt detected: ${entry.fileName}`);
+                return cleanup(new Error(`Path traversal attempt detected: ${entry.fileName}`));
+              }
+
               const fileDir = path.dirname(filePath);
               tryRecursiveDir(fileDir);
               // On Windows, mode option is ignored but doesn't cause errors
@@ -242,7 +260,7 @@ const downloadZip = async (zipFilePath: string, extractPath: string) => {
             });
           }
         });
-        zipfile.on('close', resolve);
+        zipfile.on('close', () => cleanup());
         zipfile.on('error', (err) => {
           cleanup(err);
         });
