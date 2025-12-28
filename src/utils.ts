@@ -30,7 +30,7 @@ export const isFileExists = async (path: string): Promise<boolean> => {
   try {
     await fsAccessPromisified(path, constants.F_OK);
     return true;
-  } catch (e) {
+  } catch {
     return false;
   }
 };
