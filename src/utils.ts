@@ -30,7 +30,7 @@ export const isFileExists = (path: string): boolean => {
   try {
     fs.accessSync(path, constants.F_OK);
     return true;
-  } catch (e) {
+  } catch {
     return false;
   }
 };
