@@ -1,0 +1,5 @@
+# Normalize line endings to LF
+* text=auto eol=lf
+
+# Exclude README.md from normalization
+README.md -text
