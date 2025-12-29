@@ -2,9 +2,9 @@ name: Node.js CI
 
 on:
   push:
-    branches:  [master]
+    branches: [master]
   pull_request:
-    branches:  [master]
+    branches: [master]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -15,9 +15,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-latest]
+        os: [macos-latest, ubuntu-latest, windows-latest]
         node-version: [18.x, 20.x, 24.x]
-        java-version: [ '17' ]
+        java-version: ['17']
 
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
