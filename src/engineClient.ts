@@ -9,7 +9,6 @@ export interface EngineClient {
   deleteIndex: (index: IndexBody) => Promise<void>;
 }
 
-
 const handleResponse = async <T>(res: Response): Promise<{ status: number; data: T }> => {
   const contentType = res.headers.get('content-type');
   let data: T;

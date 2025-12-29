@@ -187,80 +187,87 @@ export const getEngineBinaryURL = (engine: EngineType, version: string) => {
 export const downloadZip = async (zipFilePath: string, extractPath: string) => {
   try {
     return new Promise<void>((resolve, reject) => {
-      yauzl.open(zipFilePath, { lazyEntries: true }, (err: Error | null, zipfile: yauzl.ZipFile) => {
-        if (err) {
-          debug(`error while unzip: ${zipFilePath}`);
-          return reject(err);
-        }
-
-        let settled = false;
-        const cleanup = (error?: Error) => {
-          if (settled) return;
-          settled = true;
-
-          try {
-            zipfile.close();
-          } catch {
-            // ignore close errors
+      yauzl.open(
+        zipFilePath,
+        { lazyEntries: true },
+        (err: Error | null, zipfile: yauzl.ZipFile) => {
+          if (err) {
+            debug(`error while unzip: ${zipFilePath}`);
+            return reject(err);
           }
-          if (error) {
-            reject(error);
-          } else {
-            resolve();
-          }
-        };
 
-        zipfile.readEntry();
+          let settled = false;
+          const cleanup = (error?: Error) => {
+            if (settled) return;
+            settled = true;
 
-        zipfile.on('entry', (entry: yauzl.Entry) => {
-          debug(`found entry: fileName: ${entry.fileName}`);
-          if (/\/$/.test(entry.fileName)) {
-            // Directory entry, just read next
-            zipfile.readEntry();
-          } else {
-            // File entry
-            zipfile.openReadStream(entry, (err: Error | null, readStream: NodeJS.ReadableStream) => {
-              if (err) {
-                debug(`error while opening read stream: ${err}`);
-                return cleanup(err);
-              }
-              // Security check: ensure the file path is within the extract directory
-              const resolvedExtractPath = path.resolve(extractPath);
-              const resolvedFilePath = path.resolve(extractPath, entry.fileName);
+            try {
+              zipfile.close();
+            } catch {
+              // ignore close errors
+            }
+            if (error) {
+              reject(error);
+            } else {
+              resolve();
+            }
+          };
 
-              if (!resolvedFilePath.startsWith(resolvedExtractPath + path.sep)) {
-                debug(`Path traversal attempt detected: ${entry.fileName}`);
-                return cleanup(new Error(`Path traversal attempt detected: ${entry.fileName}`));
-              }
+          zipfile.readEntry();
 
-              const fileDir = path.dirname(resolvedFilePath);
-              tryRecursiveDir(fileDir);
-              // On Windows, mode option is ignored but doesn't cause errors
-              const writeStream = fs.createWriteStream(resolvedFilePath, { mode: 0o755 });
+          zipfile.on('entry', (entry: yauzl.Entry) => {
+            debug(`found entry: fileName: ${entry.fileName}`);
+            if (/\/$/.test(entry.fileName)) {
+              // Directory entry, just read next
+              zipfile.readEntry();
+            } else {
+              // File entry
+              zipfile.openReadStream(
+                entry,
+                (err: Error | null, readStream: NodeJS.ReadableStream) => {
+                  if (err) {
+                    debug(`error while opening read stream: ${err}`);
+                    return cleanup(err);
+                  }
+                  // Security check: ensure the file path is within the extract directory
+                  const resolvedExtractPath = path.resolve(extractPath);
+                  const resolvedFilePath = path.resolve(extractPath, entry.fileName);
 
-              writeStream.on('error', (err: Error) => {
-                debug(`error while writing file: ${err}`);
-                cleanup(err);
-              });
+                  if (!resolvedFilePath.startsWith(resolvedExtractPath + path.sep)) {
+                    debug(`Path traversal attempt detected: ${entry.fileName}`);
+                    return cleanup(new Error(`Path traversal attempt detected: ${entry.fileName}`));
+                  }
 
-              readStream.on('end', () => {
-                zipfile.readEntry();
-              });
+                  const fileDir = path.dirname(resolvedFilePath);
+                  tryRecursiveDir(fileDir);
+                  // On Windows, mode option is ignored but doesn't cause errors
+                  const writeStream = fs.createWriteStream(resolvedFilePath, { mode: 0o755 });
 
-              readStream.on('error', (err: Error) => {
-                debug(`error while reading stream: ${err}`);
-                cleanup(err);
-              });
+                  writeStream.on('error', (err: Error) => {
+                    debug(`error while writing file: ${err}`);
+                    cleanup(err);
+                  });
 
-              readStream.pipe(writeStream);
-            });
-          }
-        });
-        zipfile.on('close', () => cleanup());
-        zipfile.on('error', (err: Error) => {
-          cleanup(err);
-        });
-      });
+                  readStream.on('end', () => {
+                    zipfile.readEntry();
+                  });
+
+                  readStream.on('error', (err: Error) => {
+                    debug(`error while reading stream: ${err}`);
+                    cleanup(err);
+                  });
+
+                  readStream.pipe(writeStream);
+                },
+              );
+            }
+          });
+          zipfile.on('close', () => cleanup());
+          zipfile.on('error', (err: Error) => {
+            cleanup(err);
+          });
+        },
+      );
     });
   } catch (err) {
     debug(`error encountered while downloading & extract zip file: ${zipFilePath}, err: ${err}`);
