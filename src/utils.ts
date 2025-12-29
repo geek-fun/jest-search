@@ -187,7 +187,7 @@ export const getEngineBinaryURL = (engine: EngineType, version: string) => {
 export const downloadZip = async (zipFilePath: string, extractPath: string) => {
   try {
     return new Promise<void>((resolve, reject) => {
-      yauzl.open(zipFilePath, { lazyEntries: true }, (err, zipfile) => {
+      yauzl.open(zipFilePath, { lazyEntries: true }, (err: Error | null, zipfile: yauzl.ZipFile) => {
         if (err) {
           debug(`error while unzip: ${zipFilePath}`);
           return reject(err);
@@ -212,14 +212,14 @@ export const downloadZip = async (zipFilePath: string, extractPath: string) => {
 
         zipfile.readEntry();
 
-        zipfile.on('entry', (entry) => {
+        zipfile.on('entry', (entry: yauzl.Entry) => {
           debug(`found entry: fileName: ${entry.fileName}`);
           if (/\/$/.test(entry.fileName)) {
             // Directory entry, just read next
             zipfile.readEntry();
           } else {
             // File entry
-            zipfile.openReadStream(entry, (err, readStream) => {
+            zipfile.openReadStream(entry, (err: Error | null, readStream: NodeJS.ReadableStream) => {
               if (err) {
                 debug(`error while opening read stream: ${err}`);
                 return cleanup(err);
@@ -238,7 +238,7 @@ export const downloadZip = async (zipFilePath: string, extractPath: string) => {
               // On Windows, mode option is ignored but doesn't cause errors
               const writeStream = fs.createWriteStream(resolvedFilePath, { mode: 0o755 });
 
-              writeStream.on('error', (err) => {
+              writeStream.on('error', (err: Error) => {
                 debug(`error while writing file: ${err}`);
                 cleanup(err);
               });
@@ -247,7 +247,7 @@ export const downloadZip = async (zipFilePath: string, extractPath: string) => {
                 zipfile.readEntry();
               });
 
-              readStream.on('error', (err) => {
+              readStream.on('error', (err: Error) => {
                 debug(`error while reading stream: ${err}`);
                 cleanup(err);
               });
@@ -257,7 +257,7 @@ export const downloadZip = async (zipFilePath: string, extractPath: string) => {
           }
         });
         zipfile.on('close', () => cleanup());
-        zipfile.on('error', (err) => {
+        zipfile.on('error', (err: Error) => {
           cleanup(err);
         });
       });
