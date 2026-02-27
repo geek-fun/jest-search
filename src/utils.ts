@@ -126,7 +126,9 @@ export const download = async (url: string, dir: string, engine: EngineType, ver
         await unGzip(gzPath, writePath);
       }
     } else {
-      throw new Error(`Unsupported content type: ${contentType}`);
+      throw new Error(
+        `Unsupported content type: ${contentType}. Supported types: application/gzip, application/x-gzip, application/octet-stream, application/zip`,
+      );
     }
   } catch (err) {
     debug(`error when downloading and extracting the binary file: ${err}`);
