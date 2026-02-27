@@ -126,12 +126,11 @@ export const download = async (url: string, dir: string, engine: EngineType, ver
         await unGzip(gzPath, writePath);
       }
     } else {
-      debug(`Unsupported content type: ${contentType}`);
-      process.exit(-1);
+      throw new Error(`Unsupported content type: ${contentType}`);
     }
   } catch (err) {
     debug(`error when downloading and extracting the binary file: ${err}`);
-    process.exit(-1);
+    throw err;
   }
 
   for (let i = 0; i < 5; i++) {
