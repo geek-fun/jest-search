@@ -24,7 +24,7 @@ export const indexes = [
   },
 ];
 
-export const engineMartix = [
+export const engineMatrix = [
   {
     engine: EngineType.ELASTICSEARCH,
     version: '8.8.2',

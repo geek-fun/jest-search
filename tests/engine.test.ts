@@ -1,5 +1,5 @@
 import { EngineType, startEngine, stopEngine } from '../src';
-import { engineMartix, indexes } from './utils/fixtures';
+import { engineMatrix, indexes } from './utils/fixtures';
 import { diagnose, fetchMapping } from './utils/common';
 
 describe('integration test for elasticsearch and opensearch', () => {
@@ -33,7 +33,7 @@ describe('integration test for elasticsearch and opensearch', () => {
     });
   });
 
-  engineMartix.forEach((engineConfig) => {
+  engineMatrix.forEach((engineConfig) => {
     const { engine, version, indexes, port, clusterName, nodeName } = engineConfig;
 
     it(`should start ${engine}-${version}:${port} and create index`, async () => {

@@ -23,7 +23,7 @@ export const startZinc = ({
     },
   });
   zincserver.on('error', (error) => {
-    debug(`Error starting ${engine}: ${error})}`);
+    debug(`Error starting ${engine}: ${error}`);
   });
   return zincserver;
 };
